@@ -22,7 +22,10 @@ import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.SegmentedColumn
 @Composable
 fun IntentCreationContent(
     onCreateIntent: () -> Unit,
-    onUnavailableOption: () -> Unit,
+    onCreateLink: () -> Unit,
+    onCreateFile: () -> Unit,
+    onCreateTemplate: () -> Unit,
+    onImport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -54,7 +57,7 @@ fun IntentCreationContent(
                         icon = AppIcons.OpenLink,
                         title = stringResource(R.string.creation_open_link),
                         description = stringResource(R.string.creation_open_link_desc),
-                        onClick = onUnavailableOption,
+                        onClick = onCreateLink,
                     )
                 }
                 item(key = "file") {
@@ -62,7 +65,7 @@ fun IntentCreationContent(
                         icon = AppIcons.OpenFile,
                         title = stringResource(R.string.creation_open_file),
                         description = stringResource(R.string.creation_open_file_desc),
-                        onClick = onUnavailableOption,
+                        onClick = onCreateFile,
                     )
                 }
                 item(key = "template") {
@@ -70,7 +73,7 @@ fun IntentCreationContent(
                         icon = AppIcons.Templates,
                         title = stringResource(R.string.creation_from_template),
                         description = stringResource(R.string.creation_from_template_desc),
-                        onClick = onUnavailableOption,
+                        onClick = onCreateTemplate,
                     )
                 }
                 item(key = "import") {
@@ -78,7 +81,7 @@ fun IntentCreationContent(
                         icon = AppIcons.Import,
                         title = stringResource(R.string.creation_import_profile),
                         description = stringResource(R.string.creation_import_profile_desc),
-                        onClick = onUnavailableOption,
+                        onClick = onImport,
                     )
                 }
             }

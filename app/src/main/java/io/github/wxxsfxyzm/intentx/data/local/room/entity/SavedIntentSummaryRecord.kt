@@ -9,4 +9,5 @@ data class SavedIntentSummaryRecord(
     val name: String,
     val description: String,
     val operation: String,
+    val kind: String,
 )

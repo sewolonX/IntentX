@@ -23,6 +23,7 @@ import io.github.wxxsfxyzm.intentx.domain.catalog.InstalledAppTarget
 import io.github.wxxsfxyzm.intentx.domain.catalog.SystemAppProvider
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentSpec
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentSummary
@@ -111,6 +112,27 @@ class ViewModelStateTest {
         recreated.dispatch(EditorViewAction.SetFlags("invalid"))
         recreated.dispatch(EditorViewAction.ToggleFlag(0x10000000, false))
         assertEquals("invalid", recreated.uiState.value.flags)
+    }
+
+    @Test
+    fun documentDraftIgnoresPrivilegedDefaultAndSavesItsKindAndReadGrant() = runTest {
+        val settings = FakeSettings().apply { authorizer.value = Authorizer.Root }
+        val repository = FakeSavedIntentRepository()
+        val model = EditorViewModel(SavedStateHandle(), FakeActivityLauncher(), settings, FakeIntentBuilder(), repository, EmptyAppProvider(), FakeShortcutCreator(), json)
+        stores.put("documentEditor", model)
+        model.initializeKind(ProfileKind.File)
+        runCurrent()
+        assertEquals(0, model.uiState.value.choices[EditorChoice.LaunchMode])
+        model.dispatch(EditorViewAction.SetOperation(IntentOperation.Broadcast))
+        assertEquals(IntentOperation.Activity, model.uiState.value.operation)
+        model.selectDocument("content://example/document/1", "Notes", "text/plain")
+        model.dispatch(EditorViewAction.Save("Notes", ""))
+        assertEquals(EditorViewEvent.SaveSucceeded, model.eventFlow.first())
+        val saved = repository.profiles.value.single()
+        assertEquals(ProfileKind.File, saved.kind)
+        assertEquals("None", saved.authorizer)
+        assertEquals(0x10000001, saved.intent.flags)
+        assertEquals(true, saved.intent.requiresDocumentRead)
     }
 
     @Test
@@ -381,15 +403,16 @@ class ViewModelStateTest {
             model.dispatch(EditorViewAction.PinShortcut)
             model.dispatch(EditorViewAction.PinShortcut) // Prevent duplicate requests before the first finishes.
             runCurrent()
+            assertEquals(EditorViewEvent.ShortcutFinished(ShortcutResult.Requested), model.eventFlow.first())
             val first = shortcuts.requests.single()
             assertEquals(listOf(Authorizer.None, Authorizer.Root, Authorizer.Shizuku, Authorizer.Auto)[mode], first.authorizer)
             assertEquals(IntentOperation.Broadcast, first.operation)
             assertEquals("example.ACTION", first.intent.action)
             assertEquals("My shortcut", first.name)
-            assertEquals(EditorViewEvent.ShortcutFinished(ShortcutResult.Requested), model.eventFlow.first())
             model.dispatch(EditorViewAction.SetField(EditorField.Action, "example.CHANGED"))
             model.dispatch(EditorViewAction.PinShortcut)
             runCurrent()
+            assertEquals(EditorViewEvent.ShortcutFinished(ShortcutResult.Requested), model.eventFlow.first())
             assertEquals(first.id, shortcuts.requests.last().id)
             assertEquals("example.CHANGED", shortcuts.requests.last().intent.action)
             assertEquals(false, model.uiState.value.creatingShortcut)
@@ -433,6 +456,9 @@ class ViewModelStateTest {
         override suspend fun get(id: String) = profiles.value.firstOrNull { it.id == id }
         override suspend fun upsert(profile: SavedIntentProfile) {
             profiles.value = profiles.value.filterNot { it.id == profile.id } + profile
+        }
+        override suspend fun upsertAll(profiles: List<SavedIntentProfile>) {
+            this.profiles.value = this.profiles.value.filterNot { existing -> profiles.any { it.id == existing.id } } + profiles
         }
         override suspend fun delete(id: String) {
             profiles.value = profiles.value.filterNot { it.id == id }

@@ -17,6 +17,10 @@ data class IntentSpec(
     val flags: Int,
     val extras: List<ExtraSpec>,
     val clipData: ClipDataSpec?,
+    val matchActivity: Boolean = false,
+    val openingPolicy: OpeningPolicy = OpeningPolicy.SystemDefault,
+    val documentName: String? = null,
+    val requiresDocumentRead: Boolean = false,
 )
 
 @Serializable

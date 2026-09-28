@@ -12,7 +12,7 @@ import io.github.wxxsfxyzm.intentx.data.local.room.entity.ShortcutEntity
 
 @Database(
     entities = [SavedIntentEntity::class, ShortcutEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class IntentXDatabase : RoomDatabase() {

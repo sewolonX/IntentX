@@ -6,7 +6,7 @@ package io.github.wxxsfxyzm.intentx.ui.page.main.editor
 import io.github.wxxsfxyzm.intentx.domain.shortcut.ShortcutResult
 
 sealed interface EditorViewEvent {
-    data object FeatureNotConnected : EditorViewEvent
+    data class UriRequested(val export: Boolean, val state: EditorViewState) : EditorViewEvent
     data object LaunchSucceeded : EditorViewEvent
     data object BroadcastSent : EditorViewEvent
     data object SaveSucceeded : EditorViewEvent

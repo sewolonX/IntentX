@@ -6,6 +6,7 @@ package io.github.wxxsfxyzm.intentx.data.intent
 import io.github.wxxsfxyzm.intentx.data.local.room.dao.SavedIntentDao
 import io.github.wxxsfxyzm.intentx.data.local.room.entity.SavedIntentEntity
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentSummary
@@ -21,7 +22,7 @@ class SavedIntentRepositoryImpl(
 ) : SavedIntentRepository {
     override val summaries: Flow<List<SavedIntentSummary>> = dao.observeSummaries().map { records ->
         records.map {
-            SavedIntentSummary(it.id, it.name, it.description, IntentOperation.valueOf(it.operation))
+            SavedIntentSummary(it.id, it.name, it.description, IntentOperation.valueOf(it.operation), ProfileKind.valueOf(it.kind))
         }
     }
 
@@ -36,12 +37,15 @@ class SavedIntentRepositoryImpl(
                 createdAt = it.createdAt,
                 updatedAt = it.updatedAt,
                 operation = IntentOperation.valueOf(it.operation),
+                kind = ProfileKind.valueOf(it.kind),
             )
         }
     }
 
-    override suspend fun upsert(profile: SavedIntentProfile): Unit = withContext(Dispatchers.Default) {
-        dao.upsert(
+    override suspend fun upsert(profile: SavedIntentProfile) = upsertAll(listOf(profile))
+
+    override suspend fun upsertAll(profiles: List<SavedIntentProfile>): Unit = withContext(Dispatchers.Default) {
+        val entities = profiles.map { profile ->
             SavedIntentEntity(
                 id = profile.id,
                 name = profile.name,
@@ -52,9 +56,11 @@ class SavedIntentRepositoryImpl(
                 updatedAt = profile.updatedAt,
                 payloadVersion = codec.version,
                 payloadJson = codec.encode(profile.intent),
-            ),
-        )
-        Timber.d("Intent profile persisted: id=%s, operation=%s", profile.id, profile.operation)
+                kind = profile.kind.name,
+            )
+        }
+        dao.upsertAll(entities)
+        Timber.d("Intent profiles persisted: count=%d", profiles.size)
     }
 
     override suspend fun delete(id: String) = dao.delete(id)

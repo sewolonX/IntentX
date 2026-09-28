@@ -582,7 +582,7 @@ internal fun IntentEditor(
                     BaseItemContainer {
                         OutlinedButton(
                             onClick = { onAction(EditorViewAction.ImportUri) },
-                            enabled = false,
+                            enabled = !componentReadOnly && state.operation == IntentOperation.Activity,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(12.dp),
@@ -591,7 +591,6 @@ internal fun IntentEditor(
                         }
                         OutlinedButton(
                             onClick = { onAction(EditorViewAction.ExportUri) },
-                            enabled = false,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(12.dp),
@@ -1117,7 +1116,7 @@ private fun ReadOnlyComponentField(label: Int, value: String) {
 }
 
 @Composable
-private fun DraftField(
+internal fun DraftField(
     label: Int,
     value: String,
     onValueChange: (String) -> Unit,

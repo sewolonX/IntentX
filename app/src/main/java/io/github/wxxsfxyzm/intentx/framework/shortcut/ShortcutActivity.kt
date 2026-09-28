@@ -18,7 +18,9 @@ import io.github.wxxsfxyzm.intentx.domain.shortcut.IntentShortcut
 import io.github.wxxsfxyzm.intentx.domain.shortcut.ShortcutRepository
 import io.github.wxxsfxyzm.intentx.executor.IntentExecutor
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import timber.log.Timber
 
@@ -69,7 +71,7 @@ class ShortcutActivity : ComponentActivity() {
                     showMessage(if (shortcut.operation == IntentOperation.Activity) R.string.editor_activity_disabled else R.string.editor_receiver_disabled)
                     return@launch
                 }
-                val target = builder.build(spec, shortcut.operation)
+                val target = withContext(Dispatchers.IO) { builder.build(spec, shortcut.operation) }
                 val success = when (shortcut.operation) {
                     IntentOperation.Activity -> executor.startActivity(shortcut.authorizer, target)
                     IntentOperation.Broadcast -> executor.sendBroadcast(shortcut.authorizer, target)

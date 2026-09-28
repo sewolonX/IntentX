@@ -5,6 +5,7 @@ package io.github.wxxsfxyzm.intentx.ui.page.main.editor
 
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentFlagCatalog
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -33,10 +34,11 @@ enum class EditorField {
     ClipText,
     ClipHtml,
     ClipIntent,
+    DocumentName,
 }
 
 @Serializable
-enum class EditorChoice { LaunchMode, WindowMode, UriFormat }
+enum class EditorChoice { LaunchMode, WindowMode, UriFormat, OpeningPolicy }
 
 @Serializable
 data class DraftRowState(
@@ -79,4 +81,6 @@ data class EditorViewState(
     @Transient val packageSuggestions: List<String> = emptyList(),
     @Transient val componentSuggestions: List<ComponentSuggestion> = emptyList(),
     @Transient val creatingShortcut: Boolean = false,
+    val kind: ProfileKind = ProfileKind.CustomIntent,
+    val matchActivity: Boolean = false,
 )

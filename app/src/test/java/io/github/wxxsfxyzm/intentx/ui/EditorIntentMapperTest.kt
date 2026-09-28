@@ -6,6 +6,8 @@ package io.github.wxxsfxyzm.intentx.ui
 import android.content.Intent
 import io.github.wxxsfxyzm.intentx.domain.intent.ExtraType
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
+import io.github.wxxsfxyzm.intentx.domain.intent.OpeningPolicy
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import io.github.wxxsfxyzm.intentx.executor.Authorizer
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.DraftRowState
@@ -20,6 +22,52 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class EditorIntentMapperTest {
+    @Test
+    fun compactLinkAndFileFormsHaveActualFlagsAndOpeningPolicy() {
+        val link = EditorViewState(
+            kind = ProfileKind.Link,
+            fields = mapOf(EditorField.DataUri to "https://example.com"),
+            choices = mapOf(EditorChoice.OpeningPolicy to OpeningPolicy.AlwaysAsk.ordinal),
+        )
+        val spec = EditorIntentMapper.parse(link)
+        assertEquals("android.intent.action.VIEW", spec.action)
+        assertEquals(0x10000000, spec.flags)
+        assertEquals(true, spec.matchActivity)
+        assertEquals(OpeningPolicy.AlwaysAsk, spec.openingPolicy)
+        assertNull(spec.packageName)
+        assertEquals("weixin:", EditorIntentMapper.parse(link.copy(fields = mapOf(EditorField.DataUri to "weixin:"))).dataUri)
+        val file = link.copy(
+            kind = ProfileKind.File,
+            fields = mapOf(
+                EditorField.DataUri to "content://example/document/1",
+                EditorField.MimeType to "text/plain",
+                EditorField.DocumentName to "Notes",
+            ),
+        )
+        val document = EditorIntentMapper.parse(file)
+        assertEquals(0x10000001, document.flags)
+        assertEquals(true, document.requiresDocumentRead)
+        assertEquals("Notes", document.documentName)
+        assertEquals(Authorizer.None, EditorIntentMapper.authorizer(file.copy(choices = file.choices + (EditorChoice.LaunchMode to 1))))
+        val restored = EditorIntentMapper.restore(SavedIntentProfile("file", "Notes", "", document, "None", 1, 1, kind = ProfileKind.File))
+        assertEquals(document, EditorIntentMapper.parse(restored))
+    }
+
+    @Test
+    fun compactFormsRejectRelativeUrisMissingApplicationsAndTypedIntentUris() {
+        val state = EditorViewState(kind = ProfileKind.Link, fields = mapOf(EditorField.DataUri to "example.com"))
+        assertThrows(IllegalArgumentException::class.java) { EditorIntentMapper.parse(state) }
+        assertThrows(IllegalArgumentException::class.java) {
+            EditorIntentMapper.parse(state.copy(fields = mapOf(EditorField.DataUri to "intent://example#Intent;end")))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            EditorIntentMapper.parse(state.copy(fields = mapOf(EditorField.DataUri to "https://example.com"), choices = mapOf(EditorChoice.OpeningPolicy to OpeningPolicy.Application.ordinal)))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            EditorIntentMapper.parse(state.copy(kind = ProfileKind.File, fields = mapOf(EditorField.DataUri to "file:///tmp/document")))
+        }
+    }
+
     @Test
     fun automaticAuthorizerSurvivesProfileRestore() {
         val profile = SavedIntentProfile(

@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 
 /** Payload versions are independent of the database schema and shortcut capability version. */
 class IntentPayloadCodec(private val json: Json) {
-    val version: Int = 1
+    val version: Int = 2
 
     fun encode(intent: IntentSpec): String = json.encodeToString(intent)
 

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.wxxsfxyzm.intentx.R
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
 import io.github.wxxsfxyzm.intentx.ui.ShortcutSettingsSheet
 import io.github.wxxsfxyzm.intentx.ui.icons.AppIcons
 import io.github.wxxsfxyzm.intentx.ui.navigation.LocalNavigator
@@ -59,10 +60,13 @@ import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogActionMenu
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogScreen
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogSearchField
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.ComponentTabs
+import io.github.wxxsfxyzm.intentx.ui.page.main.creation.ImportPage
+import io.github.wxxsfxyzm.intentx.ui.page.main.creation.TemplatesPage
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorPage
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorViewAction
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorViewModel
 import io.github.wxxsfxyzm.intentx.ui.page.main.saved.IntentCreationContent
+import io.github.wxxsfxyzm.intentx.ui.page.main.saved.SavedIntentExportAction
 import io.github.wxxsfxyzm.intentx.ui.page.main.saved.SavedIntentScreen
 import io.github.wxxsfxyzm.intentx.ui.page.main.settings.preferred.PreferredPage
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.ExpressiveBackButton
@@ -80,7 +84,6 @@ import top.yukonga.miuix.kmp.nav.gesture.WindowNavigationEventBridge
 @Composable
 fun IntentXMainTab(page: Int, title: String, useBlur: Boolean, outerPadding: PaddingValues, active: Boolean) {
     val navigator = LocalNavigator.current
-    val context = LocalContext.current
     var showCreationSheet by rememberSaveable { mutableStateOf(false) }
     IntentXPageScaffold(
         title = title,
@@ -93,7 +96,11 @@ fun IntentXMainTab(page: Int, title: String, useBlur: Boolean, outerPadding: Pad
             else -> null
         },
         createContentDescription = if (page == 1) R.string.add_quick_action else R.string.new_intent,
-        actions = if (page == 0) ({ CatalogActionMenu() }) else null,
+        actions = when (page) {
+            0 -> ({ CatalogActionMenu() })
+            1 -> ({ SavedIntentExportAction() })
+            else -> null
+        },
     ) { modifier, contentPadding, _ ->
         when (page) {
             0 -> CatalogScreen(modifier = modifier, contentPadding = contentPadding, showSearch = false)
@@ -113,10 +120,23 @@ fun IntentXMainTab(page: Int, title: String, useBlur: Boolean, outerPadding: Pad
             IntentCreationContent(
                 onCreateIntent = {
                     showCreationSheet = false
-                    navigator.push(Route.Editor())
+                    navigator.push(Route.Editor(returnToSaved = true))
                 },
-                onUnavailableOption = {
-                    Toast.makeText(context, R.string.creation_not_connected, Toast.LENGTH_SHORT).show()
+                onCreateLink = {
+                    showCreationSheet = false
+                    navigator.push(Route.Editor(kind = ProfileKind.Link, returnToSaved = true))
+                },
+                onCreateFile = {
+                    showCreationSheet = false
+                    navigator.push(Route.Editor(kind = ProfileKind.File, returnToSaved = true))
+                },
+                onCreateTemplate = {
+                    showCreationSheet = false
+                    navigator.push(Route.Templates)
+                },
+                onImport = {
+                    showCreationSheet = false
+                    navigator.push(Route.Import())
                 },
             )
         }
@@ -160,7 +180,17 @@ fun IntentXDestination(route: Route, useBlur: Boolean) {
                     onClick = { model.dispatch(EditorViewAction.Launch) },
                     icon = { Icon(AppIcons.Launcher, null) },
                     text = {
-                        Text(stringResource(if (state.operation == IntentOperation.Activity) R.string.launch else R.string.send_broadcast))
+                        Text(
+                            stringResource(
+                                if (state.kind != ProfileKind.CustomIntent) {
+                                    R.string.quick_open
+                                } else if (state.operation == IntentOperation.Activity) {
+                                    R.string.launch
+                                } else {
+                                    R.string.send_broadcast
+                                },
+                            ),
+                        )
                     },
                 )
             }
@@ -178,14 +208,33 @@ fun IntentXDestination(route: Route, useBlur: Boolean) {
             }
         } else if (route is Route.Activities) {
             CatalogScreen(modifier, route.packageName, contentPadding, showSearch = false)
+        } else if (route is Route.Templates) {
+            TemplatesPage(modifier, contentPadding)
+        } else if (route is Route.Import) {
+            ImeDismissalFocusScope(enabled = navigator.current() == route) {
+                ImportPage(route, modifier, contentPadding)
+            }
         }
     }
     if (route is Route.Editor) {
         EditorDestinationScaffold(
-            title = route.activityLabel?.ifBlank { stringResource(R.string.new_intent) }
-                ?: stringResource(R.string.new_intent),
+            title = route.activityLabel?.ifBlank { null } ?: stringResource(
+                when (route.kind) {
+                    ProfileKind.CustomIntent -> R.string.new_intent
+                    ProfileKind.Link -> R.string.creation_open_link
+                    ProfileKind.File -> R.string.creation_open_file
+                },
+            ),
             editorActions = editorActions,
             floatingActionButton = editorFab,
+            useBlur = useBlur,
+            content = pageContent,
+        )
+    } else if (route is Route.Import) {
+        EditorDestinationScaffold(
+            title = stringResource(R.string.creation_import_profile),
+            editorActions = null,
+            floatingActionButton = null,
             useBlur = useBlur,
             content = pageContent,
         )
@@ -193,6 +242,7 @@ fun IntentXDestination(route: Route, useBlur: Boolean) {
         IntentXPageScaffold(
             title = when (route) {
                 is Route.Activities -> route.appLabel.ifBlank { route.packageName }
+                is Route.Templates -> stringResource(R.string.creation_from_template)
                 else -> stringResource(R.string.new_intent)
             },
             useBlur = useBlur,
@@ -222,7 +272,7 @@ fun IntentXDestination(route: Route, useBlur: Boolean) {
     if (showSaveDialog && editorViewModel != null) {
         val suggestion = editorViewModel.suggestedProfileName()
         var name by rememberSaveable(route, suggestion) { mutableStateOf(suggestion) }
-        var description by rememberSaveable(route) { mutableStateOf("") }
+        var description by rememberSaveable(route) { mutableStateOf(editorViewModel.uiState.value.profileDescription) }
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },
             title = { Text(stringResource(R.string.profile_save_title)) },

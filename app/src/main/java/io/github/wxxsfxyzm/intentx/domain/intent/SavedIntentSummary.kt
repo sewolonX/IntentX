@@ -8,4 +8,5 @@ data class SavedIntentSummary(
     val name: String,
     val description: String,
     val operation: IntentOperation,
+    val kind: ProfileKind = ProfileKind.CustomIntent,
 )

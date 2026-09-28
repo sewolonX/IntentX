@@ -12,6 +12,8 @@ import io.github.wxxsfxyzm.intentx.domain.catalog.SystemAppProvider
 import io.github.wxxsfxyzm.intentx.domain.intent.ExtraType
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentFlagCatalog
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
+import io.github.wxxsfxyzm.intentx.domain.intent.IntentSpec
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
 import io.github.wxxsfxyzm.intentx.domain.settings.repository.AppSettingsRepository
@@ -25,6 +27,7 @@ import java.io.IOException
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -34,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 
@@ -154,7 +158,64 @@ class EditorViewModel(
         }
     }
 
-    fun suggestedProfileName(): String = _uiState.value.fields[EditorField.Title].orEmpty()
+    fun suggestedProfileName(): String = _uiState.value.fields[EditorField.Title].orEmpty().ifBlank {
+        _uiState.value.fields[EditorField.DocumentName].orEmpty().ifBlank { _uiState.value.fields[EditorField.DataUri].orEmpty() }
+    }
+
+    fun initializeKind(kind: ProfileKind) {
+        if (kind == ProfileKind.CustomIntent || savedStateHandle.get<Boolean>("quick_initialized") == true) return
+        _uiState.update {
+            it.copy(
+                kind = kind,
+                operation = IntentOperation.Activity,
+                operationLocked = true,
+                choices = it.choices + (EditorChoice.LaunchMode to 0),
+            )
+        }
+        savedStateHandle["quick_initialized"] = true
+        savedStateHandle["editor_draft"] = json.encodeToString(_uiState.value)
+    }
+
+    fun applyDraft(profile: SavedIntentProfile) {
+        if (savedStateHandle.get<Boolean>("draft_initialized") == true) return
+        _uiState.value = EditorIntentMapper.restore(profile).copy(
+            profileId = null,
+            operationLocked = profile.kind != ProfileKind.CustomIntent,
+        )
+        savedStateHandle["draft_initialized"] = true
+        savedStateHandle["editor_draft"] = json.encodeToString(_uiState.value)
+    }
+
+    fun selectDocument(uri: String, name: String, mimeType: String?) {
+        dispatch(EditorViewAction.SetField(EditorField.DataUri, uri))
+        dispatch(EditorViewAction.SetField(EditorField.DocumentName, name))
+        dispatch(EditorViewAction.SetField(EditorField.MimeType, mimeType ?: "application/octet-stream"))
+        if (_uiState.value.fields[EditorField.Title].isNullOrBlank()) dispatch(EditorViewAction.SetField(EditorField.Title, name))
+    }
+
+    fun applyImportedIntent(intent: IntentSpec) {
+        val old = _uiState.value
+        val mapped = EditorIntentMapper.restore(
+            SavedIntentProfile(
+                "",
+                old.profileName,
+                old.profileDescription,
+                intent,
+                EditorIntentMapper.authorizer(old).name,
+                0,
+                0,
+            ),
+        )
+        _uiState.value = mapped.copy(
+            profileId = old.profileId,
+            operationLocked = old.operationLocked,
+            fields = mapped.fields + (EditorField.Title to old.fields[EditorField.Title].orEmpty()),
+            choices = mapped.choices + old.choices,
+        )
+        if (EditorIntentMapper.authorizer(_uiState.value).requiresNewTask) _uiState.update { it.withRequiredNormalLaunchFlag() }
+        savedStateHandle["editor_draft"] = json.encodeToString(_uiState.value)
+        refreshComponentSuggestions(intent.packageName.orEmpty())
+    }
 
     fun dispatch(action: EditorViewAction) {
         if (action is EditorViewAction.Launch) {
@@ -170,7 +231,8 @@ class EditorViewModel(
             return
         }
         if (action is EditorViewAction.ImportUri || action is EditorViewAction.ExportUri) {
-            viewModelScope.launch { events.send(EditorViewEvent.FeatureNotConnected) }
+            val snapshot = _uiState.value
+            viewModelScope.launch { events.send(EditorViewEvent.UriRequested(action == EditorViewAction.ExportUri, snapshot)) }
             return
         }
         _uiState.update { state ->
@@ -331,7 +393,7 @@ class EditorViewModel(
                     events.send(if (state.operation == IntentOperation.Activity) EditorViewEvent.ActivityDisabled else EditorViewEvent.ReceiverDisabled)
                     return@launch
                 }
-                val intent = intentBuilder.build(spec, state.operation)
+                val intent = withContext(Dispatchers.IO) { intentBuilder.build(spec, state.operation) }
                 val authorizer = EditorIntentMapper.authorizer(state)
                 val success = when (state.operation) {
                     IntentOperation.Activity -> intentExecutor.startActivity(authorizer, intent)
@@ -363,7 +425,7 @@ class EditorViewModel(
                 val name = action.name.trim()
                 require(name.isNotEmpty()) { "Enter a profile name" }
                 val spec = EditorIntentMapper.parse(_uiState.value)
-                intentBuilder.build(spec, _uiState.value.operation) // Validate the same fields used during execution.
+                withContext(Dispatchers.IO) { intentBuilder.build(spec, _uiState.value.operation) }
                 val now = System.currentTimeMillis()
                 val existingId = _uiState.value.profileId
                 val previous = editingProfile ?: existingId?.let { id ->
@@ -379,6 +441,7 @@ class EditorViewModel(
                     createdAt = previous?.createdAt ?: now,
                     updatedAt = now,
                     operation = _uiState.value.operation,
+                    kind = _uiState.value.kind,
                 )
                 profiles.upsert(profile)
                 Timber.d("Profile saved: id=%s, operation=%s, authorizer=%s", profile.id, profile.operation, profile.authorizer)
@@ -411,7 +474,7 @@ class EditorViewModel(
             )
             try {
                 val spec = EditorIntentMapper.parse(state)
-                intentBuilder.build(spec, state.operation)
+                withContext(Dispatchers.IO) { intentBuilder.build(spec, state.operation) }
                 val name = state.fields[EditorField.ShortcutName].orEmpty().trim().ifEmpty {
                     state.profileName.ifBlank {
                         state.fields[EditorField.Title].orEmpty().ifBlank {

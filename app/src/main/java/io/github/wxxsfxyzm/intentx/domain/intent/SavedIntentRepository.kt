@@ -9,5 +9,8 @@ interface SavedIntentRepository {
     val summaries: Flow<List<SavedIntentSummary>>
     suspend fun get(id: String): SavedIntentProfile?
     suspend fun upsert(profile: SavedIntentProfile)
+
+    /** Saves the whole collection atomically. */
+    suspend fun upsertAll(profiles: List<SavedIntentProfile>)
     suspend fun delete(id: String)
 }

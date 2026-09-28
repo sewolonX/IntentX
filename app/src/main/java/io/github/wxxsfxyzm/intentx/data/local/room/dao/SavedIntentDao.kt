@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SavedIntentDao {
-    @Query("SELECT id, name, description, operation FROM saved_intents ORDER BY updatedAt DESC, id DESC")
+    @Query("SELECT id, name, description, operation, kind FROM saved_intents ORDER BY updatedAt DESC, id DESC")
     fun observeSummaries(): Flow<List<SavedIntentSummaryRecord>>
 
     @Query("SELECT * FROM saved_intents WHERE id = :id")
@@ -20,6 +20,9 @@ interface SavedIntentDao {
 
     @Upsert
     suspend fun upsert(profile: SavedIntentEntity)
+
+    @Upsert
+    suspend fun upsertAll(profiles: List<SavedIntentEntity>)
 
     @Query("DELETE FROM saved_intents WHERE id = :id")
     suspend fun delete(id: String)

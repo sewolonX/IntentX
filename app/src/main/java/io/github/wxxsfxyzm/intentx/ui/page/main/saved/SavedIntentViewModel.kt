@@ -12,11 +12,13 @@ import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
 import io.github.wxxsfxyzm.intentx.executor.Authorizer
 import io.github.wxxsfxyzm.intentx.executor.IntentExecutor
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 class SavedIntentViewModel(
@@ -55,7 +57,7 @@ class SavedIntentViewModel(
                     events.send(if (profile.operation == IntentOperation.Activity) SavedIntentEvent.ActivityDisabled else SavedIntentEvent.ReceiverDisabled)
                     return@launch
                 }
-                val intent = builder.build(profile.intent, profile.operation)
+                val intent = withContext(Dispatchers.IO) { builder.build(profile.intent, profile.operation) }
                 val authorizer = Authorizer.entries.firstOrNull { it.name == profile.authorizer } ?: Authorizer.None
                 val success = when (profile.operation) {
                     IntentOperation.Activity -> executor.startActivity(authorizer, intent)

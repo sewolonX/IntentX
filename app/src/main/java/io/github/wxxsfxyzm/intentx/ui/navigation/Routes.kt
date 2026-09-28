@@ -3,6 +3,8 @@
 
 package io.github.wxxsfxyzm.intentx.ui.navigation
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
+import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import kotlinx.serialization.Serializable
 import top.yukonga.miuix.kmp.nav.core.NavKey
 @Serializable
@@ -12,6 +14,10 @@ sealed interface Route : NavKey {
     @Serializable data object Theme : Route
 
     @Serializable data object About : Route
+
+    @Serializable data object Templates : Route
+
+    @Serializable data class Import(val initialText: String = "") : Route
 
     @Serializable data object OpenSourceLicense : Route
 
@@ -23,5 +29,8 @@ sealed interface Route : NavKey {
         val activityLabel: String? = null,
         val profileId: String? = null,
         val operation: IntentOperation = IntentOperation.Activity,
+        val kind: ProfileKind = ProfileKind.CustomIntent,
+        val draft: SavedIntentProfile? = null,
+        val returnToSaved: Boolean = false,
     ) : Route
 }

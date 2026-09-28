@@ -20,6 +20,7 @@ import androidx.compose.material.icons.twotone.Delete
 import androidx.compose.material.icons.twotone.DoNotDisturbOn
 import androidx.compose.material.icons.twotone.Edit
 import androidx.compose.material.icons.twotone.FileDownload
+import androidx.compose.material.icons.twotone.FileUpload
 import androidx.compose.material.icons.twotone.FolderOpen
 import androidx.compose.material.icons.twotone.Info
 import androidx.compose.material.icons.twotone.Link
@@ -43,6 +44,7 @@ object AppIcons {
     val OpenFile = Icons.TwoTone.FolderOpen
     val Templates = Icons.TwoTone.DashboardCustomize
     val Import = Icons.TwoTone.FileDownload
+    val Export = Icons.TwoTone.FileUpload
     val Delete = Icons.TwoTone.Delete
     val Save = Icons.TwoTone.Save
     val AddToHomeScreen = Icons.AutoMirrored.TwoTone.AddToHomeScreen

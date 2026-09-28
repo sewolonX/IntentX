@@ -15,6 +15,7 @@ import io.github.wxxsfxyzm.intentx.domain.intent.ExtraSpec
 import io.github.wxxsfxyzm.intentx.domain.intent.ExtraType
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentSpec
+import io.github.wxxsfxyzm.intentx.domain.intent.OpeningPolicy
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -46,10 +47,17 @@ class AndroidIntentBuilder(
         val className = spec.className
         when (operation) {
             IntentOperation.Activity -> {
-                require(!packageName.isNullOrBlank()) { "Enter a package name to launch an Activity" }
                 if (className != null) {
+                    require(!packageName.isNullOrBlank()) { "A component needs a package name" }
                     intent.component = ComponentName(packageName, className)
+                } else if (spec.matchActivity) {
+                    require(spec.action != null || spec.dataUri != null) { "Intent matching needs an action or a URI" }
+                    if (spec.openingPolicy == OpeningPolicy.Application) {
+                        require(!packageName.isNullOrBlank()) { "Select an application" }
+                    }
+                    packageName?.let(intent::setPackage)
                 } else {
+                    require(!packageName.isNullOrBlank()) { "Enter a package name to launch an Activity" }
                     val launcher = context.packageManager.getLaunchIntentForPackage(packageName)
                     requireNotNull(launcher?.component) { "No launcher Activity found for $packageName" }
                     Timber.d("Resolved launcher Activity: %s", launcher.component?.className)
@@ -77,6 +85,13 @@ class AndroidIntentBuilder(
         intent.flags = spec.flags
         spec.extras.forEach { addExtra(intent, it) }
         spec.clipData?.let { intent.clipData = buildClipData(it) }
+        if (spec.requiresDocumentRead) {
+            require(data?.scheme == "content") { "Select a document using the file picker" }
+            requireNotNull(context.contentResolver.openAssetFileDescriptor(data, "r")) { "File access is unavailable; select the file again" }.close()
+        }
+        if (operation == IntentOperation.Activity && spec.openingPolicy == OpeningPolicy.AlwaysAsk) {
+            return Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         return intent
     }
 

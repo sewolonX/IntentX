@@ -16,4 +16,5 @@ data class SavedIntentProfile(
     val createdAt: Long,
     val updatedAt: Long,
     val operation: IntentOperation = IntentOperation.Activity,
+    val kind: ProfileKind = ProfileKind.CustomIntent,
 )

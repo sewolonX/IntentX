@@ -3,6 +3,7 @@
 
 package io.github.wxxsfxyzm.intentx.data.local.room
 
+import android.database.sqlite.SQLiteDatabase
 import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -79,6 +80,26 @@ class RoomStorageTest {
         assertNull(repository.get(first.id))
         assertEquals(listOf(second.id), repository.summaries.first().map { it.id })
         assertEquals(second, repository.get(second.id))
+    }
+
+    @Test
+    fun batchUpsertRollsBackEarlierWritesWhenAnyRowFails() = runTest {
+        val repository = SavedIntentRepositoryImpl(database.savedIntentDao, codec)
+        val original = profile("existing", 1)
+        repository.upsert(original)
+        SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use {
+            it.execSQL("CREATE TRIGGER reject_profile BEFORE INSERT ON saved_intents WHEN NEW.id = 'reject' BEGIN SELECT RAISE(ABORT, 'rejected by test'); END")
+        }
+        try {
+            repository.upsertAll(listOf(original.copy(name = "Changed"), profile("new", 2), profile("reject", 3)))
+            fail("The rejected row must abort the whole batch")
+        } catch (_: Exception) {
+            // Check both the existing-row update and the preceding insert were rolled back.
+        }
+        assertEquals(original, repository.get(original.id))
+        assertNull(repository.get("new"))
+        assertNull(repository.get("reject"))
+        assertEquals(listOf(original.id), repository.summaries.first().map { it.id })
     }
 
     @Test

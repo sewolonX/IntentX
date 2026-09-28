@@ -18,4 +18,5 @@ data class SavedIntentEntity(
     val updatedAt: Long,
     val payloadVersion: Int,
     val payloadJson: String,
+    val kind: String,
 )

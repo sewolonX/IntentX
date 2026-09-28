@@ -5,7 +5,11 @@ package io.github.wxxsfxyzm.intentx.di
 
 import io.github.wxxsfxyzm.intentx.ui.AppViewModel
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogViewModel
+import io.github.wxxsfxyzm.intentx.ui.page.main.creation.ImportViewModel
+import io.github.wxxsfxyzm.intentx.ui.page.main.creation.TemplatesViewModel
+import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorUriViewModel
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorViewModel
+import io.github.wxxsfxyzm.intentx.ui.page.main.saved.ProfileExportViewModel
 import io.github.wxxsfxyzm.intentx.ui.page.main.saved.SavedIntentViewModel
 import io.github.wxxsfxyzm.intentx.ui.page.main.settings.SettingsSharedViewModel
 import io.github.wxxsfxyzm.intentx.ui.page.main.settings.preferred.about.AboutViewModel
@@ -20,7 +24,11 @@ val viewModelModule = module {
     viewModelOf(::AuthorizationViewModel)
     viewModelOf(::CatalogViewModel)
     viewModelOf(::EditorViewModel)
+    viewModelOf(::EditorUriViewModel)
+    viewModelOf(::ImportViewModel)
+    viewModelOf(::TemplatesViewModel)
     viewModelOf(::SavedIntentViewModel)
+    viewModelOf(::ProfileExportViewModel)
     viewModelOf(::SettingsSharedViewModel)
     viewModelOf(::ThemeSettingsViewModel)
 }

@@ -4,6 +4,8 @@
 package io.github.wxxsfxyzm.intentx.ui.page.main.saved
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -39,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.wxxsfxyzm.intentx.R
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
+import io.github.wxxsfxyzm.intentx.domain.intent.ProfileKind
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentSummary
 import io.github.wxxsfxyzm.intentx.ui.EmptyPanel
 import io.github.wxxsfxyzm.intentx.ui.icons.AppIcons
@@ -56,6 +59,17 @@ fun SavedIntentScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     val context = LocalContext.current
+    val exportModel = koinViewModel<ProfileExportViewModel>()
+    val fileCreator = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        exportModel.write(uri?.toString())
+    }
+    CollectUiEvents(exportModel.eventFlow) { event ->
+        when (event) {
+            ProfileExportEvent.Ready -> fileCreator.launch("intentx-profiles.json")
+            ProfileExportEvent.Saved -> Toast.makeText(context, R.string.export_saved, Toast.LENGTH_SHORT).show()
+            ProfileExportEvent.Failed -> Toast.makeText(context, R.string.export_failed, Toast.LENGTH_LONG).show()
+        }
+    }
     var deleting by remember { mutableStateOf<SavedIntentSummary?>(null) }
     CollectUiEvents(viewModel.eventFlow) { event ->
         val message = when (event) {
@@ -83,9 +97,10 @@ fun SavedIntentScreen(
                     profile = profile,
                     onLaunch = { viewModel.launch(profile.id) },
                     onEdit = {
-                        navigator.push(Route.Editor(activityLabel = profile.name, profileId = profile.id, operation = profile.operation))
+                        navigator.push(Route.Editor(activityLabel = profile.name, profileId = profile.id, operation = profile.operation, kind = profile.kind))
                     },
                     onDelete = { deleting = profile },
+                    onExport = { exportModel.export(profile.id) },
                 )
             }
         }
@@ -117,6 +132,7 @@ private fun SavedIntentCard(
     onLaunch: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onExport: () -> Unit,
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -129,7 +145,13 @@ private fun SavedIntentCard(
             Column {
                 Text(profile.name, style = MaterialTheme.typography.titleMediumEmphasized)
                 Text(
-                    stringResource(if (profile.operation == IntentOperation.Activity) R.string.operation_activity else R.string.operation_broadcast),
+                    stringResource(
+                        when (profile.kind) {
+                            ProfileKind.Link -> R.string.creation_open_link
+                            ProfileKind.File -> R.string.creation_open_file
+                            ProfileKind.CustomIntent -> if (profile.operation == IntentOperation.Activity) R.string.operation_activity else R.string.operation_broadcast
+                        },
+                    ),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -151,6 +173,12 @@ private fun SavedIntentCard(
             }
             IconButton(onClick = onEdit) { Icon(AppIcons.Edit, stringResource(R.string.edit)) }
             IconButton(onClick = onDelete) { Icon(AppIcons.Delete, stringResource(R.string.delete)) }
+            IconButton(onClick = onExport) { Icon(AppIcons.Export, stringResource(R.string.export_profiles)) }
         }
     }
+}
+
+@Composable
+fun SavedIntentExportAction(viewModel: ProfileExportViewModel = koinViewModel()) {
+    IconButton(onClick = { viewModel.export() }) { Icon(AppIcons.Export, stringResource(R.string.export_profiles)) }
 }

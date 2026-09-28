@@ -93,6 +93,12 @@ fun InstallerNavContainer(uiState: ThemeState) {
                     IntentXDestination(route, useBlur)
                 }
             }
+            entry<Route.Templates>(swipeDismiss = swipeBackDirection) { route ->
+                InstallerNavEntry(interceptPredictiveBack, onBack) { IntentXDestination(route, useBlur) }
+            }
+            entry<Route.Import>(swipeDismiss = NavSwipeDirection.None) { route ->
+                InstallerNavEntry(interceptPredictiveBack, onBack) { IntentXDestination(route, useBlur) }
+            }
             entry<Route.Theme>(swipeDismiss = swipeBackDirection) {
                 InstallerNavEntry(interceptPredictiveBack, onBack) { ThemeSettingsPage() }
             }
