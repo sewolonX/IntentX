@@ -49,7 +49,7 @@ fun IntentCreationContent(
                         icon = AppIcons.Edit,
                         title = stringResource(R.string.creation_custom_intent),
                         description = stringResource(R.string.creation_custom_intent_desc),
-                        onClick = onCreateIntent,
+                        onClick = { onCreateIntent() },
                     )
                 }
                 item(key = "link") {
@@ -57,7 +57,7 @@ fun IntentCreationContent(
                         icon = AppIcons.OpenLink,
                         title = stringResource(R.string.creation_open_link),
                         description = stringResource(R.string.creation_open_link_desc),
-                        onClick = onCreateLink,
+                        onClick = { onCreateLink() },
                     )
                 }
                 item(key = "file") {
@@ -65,7 +65,7 @@ fun IntentCreationContent(
                         icon = AppIcons.OpenFile,
                         title = stringResource(R.string.creation_open_file),
                         description = stringResource(R.string.creation_open_file_desc),
-                        onClick = onCreateFile,
+                        onClick = { onCreateFile() },
                     )
                 }
                 item(key = "template") {
@@ -73,7 +73,7 @@ fun IntentCreationContent(
                         icon = AppIcons.Templates,
                         title = stringResource(R.string.creation_from_template),
                         description = stringResource(R.string.creation_from_template_desc),
-                        onClick = onCreateTemplate,
+                        onClick = { onCreateTemplate() },
                     )
                 }
                 item(key = "import") {
@@ -81,7 +81,7 @@ fun IntentCreationContent(
                         icon = AppIcons.Import,
                         title = stringResource(R.string.creation_import_profile),
                         description = stringResource(R.string.creation_import_profile_desc),
-                        onClick = onImport,
+                        onClick = { onImport() },
                     )
                 }
             }

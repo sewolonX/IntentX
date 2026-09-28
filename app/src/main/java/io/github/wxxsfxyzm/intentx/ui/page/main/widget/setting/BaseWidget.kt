@@ -241,7 +241,7 @@ fun BaseWidget(
                     text = text,
                     style = descriptionStyle,
                     modifier = Modifier
-                        .alpha(alpha)
+                        .alpha(alpha),
                 )
             }
 
@@ -278,7 +278,9 @@ fun BaseWidget(
                 }
             }
         }
-    } else null
+    } else {
+        null
+    }
 
     val headline: @Composable () -> Unit = {
         Box(
@@ -343,7 +345,9 @@ fun BaseWidget(
                     clickHaptic?.let { haptic.performHapticFeedback(it) }
                     onLongClick(point)
                 }
-            } else null,
+            } else {
+                null
+            },
             enabled = enabled,
             colors = colors,
             shapes = shapes,
@@ -351,7 +355,7 @@ fun BaseWidget(
             leadingContent = leadingContent,
             trailingContent = trailing,
             interactionSource = interactionSource,
-            content = expressiveContent
+            content = expressiveContent,
         )
     } else {
         /*
@@ -369,7 +373,7 @@ fun BaseWidget(
                         Modifier.semantics { disabled() }
                     } else {
                         Modifier
-                    }
+                    },
                 ),
             enabled = enabled,
             verticalAlignment = Alignment.CenterVertically,

@@ -60,7 +60,7 @@ fun QuickActionEditor(
                             title = stringResource(R.string.select_document),
                             description = state.fields[EditorField.DocumentName]?.ifBlank { null } ?: stringResource(R.string.document_none),
                             iconPlaceholder = false,
-                            onClick = onSelectFile,
+                            onClick = { onSelectFile() },
                         )
                     } else {
                         DraftField(R.string.link_uri, state.fields[EditorField.DataUri].orEmpty(), { onAction(EditorViewAction.SetField(EditorField.DataUri, it)) })
@@ -87,13 +87,13 @@ fun QuickActionEditor(
                             title = stringResource(R.string.opening_application),
                             description = state.fields[EditorField.PackageName]?.ifBlank { null } ?: stringResource(R.string.select_application),
                             iconPlaceholder = false,
-                            onClick = onSelectApp,
+                            onClick = { onSelectApp() },
                         )
                     }
                 }
                 if (!file) {
                     item(key = "intent_uri") {
-                        BaseWidget(title = stringResource(R.string.import_intent_uri), description = stringResource(R.string.import_intent_uri_desc), iconPlaceholder = false, onClick = onImportUri)
+                        BaseWidget(title = stringResource(R.string.import_intent_uri), description = stringResource(R.string.import_intent_uri_desc), iconPlaceholder = false, onClick = { onImportUri() })
                     }
                 }
             }

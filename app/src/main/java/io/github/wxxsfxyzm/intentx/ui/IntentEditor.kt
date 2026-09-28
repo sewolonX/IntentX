@@ -95,8 +95,8 @@ import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.BaseWidget
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.DropDownMenuWidget
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.SegmentedColumn
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.SwitchWidget
-import io.github.wxxsfxyzm.intentx.ui.util.clearFocusOnImeDismiss
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.TextFieldWidget
+import io.github.wxxsfxyzm.intentx.ui.util.clearFocusOnImeDismiss
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -253,7 +253,11 @@ internal fun IntentEditor(
                         R.string.package_name,
                         state.fields[EditorField.PackageName].orEmpty(),
                         { onAction(EditorViewAction.SetField(EditorField.PackageName, it)) },
-                        suggestions = state.packageSuggestions.map { DraftSuggestion(it) },
+                        suggestions = if (state.fields[EditorField.PackageName].isNullOrBlank()) {
+                            emptyList()
+                        } else {
+                            state.packageSuggestions.map { DraftSuggestion(it) }
+                        },
                     )
                 }
             }
@@ -1076,10 +1080,10 @@ private fun DraftSuggestionField(
                                 }
                             },
                             shapes = MenuDefaults.itemShape(0, 1),
-                            )
-                        }
+                        )
                     }
                 }
+            }
         }
     }
 }

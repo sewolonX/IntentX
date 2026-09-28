@@ -192,13 +192,13 @@ fun ComponentTabs(packageName: String) {
             selected = state.componentTab == IntentOperation.Activity,
             onClick = { viewModel.dispatch(CatalogViewAction.SetComponentTab(IntentOperation.Activity)) },
             text = { Text(stringResource(R.string.operation_activity)) },
-            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Tab(
             selected = state.componentTab == IntentOperation.Broadcast,
             onClick = { viewModel.dispatch(CatalogViewAction.SetComponentTab(IntentOperation.Broadcast)) },
             text = { Text(stringResource(R.string.operation_broadcast)) },
-            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

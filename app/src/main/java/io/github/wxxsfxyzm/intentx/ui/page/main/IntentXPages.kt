@@ -55,7 +55,6 @@ import io.github.wxxsfxyzm.intentx.ui.icons.AppIcons
 import io.github.wxxsfxyzm.intentx.ui.navigation.LocalNavigator
 import io.github.wxxsfxyzm.intentx.ui.navigation.Route
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.ActivityActionMenu
-import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.TextFieldWidget
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogActionMenu
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogScreen
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogSearchField
@@ -70,6 +69,7 @@ import io.github.wxxsfxyzm.intentx.ui.page.main.saved.SavedIntentExportAction
 import io.github.wxxsfxyzm.intentx.ui.page.main.saved.SavedIntentScreen
 import io.github.wxxsfxyzm.intentx.ui.page.main.settings.preferred.PreferredPage
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.ExpressiveBackButton
+import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.TextFieldWidget
 import io.github.wxxsfxyzm.intentx.ui.theme.getMaterial3AppBarColor
 import io.github.wxxsfxyzm.intentx.ui.theme.installerMaterial3BlurEffect
 import io.github.wxxsfxyzm.intentx.ui.theme.rememberMaterial3BlurBackdrop

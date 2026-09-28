@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-only
-// Copyright (C) 2023-2026 iamr0s, IntentX contributors
+// SPDX-License-Identifier: GPL-3.0
+// Copyright (C) 2026 IntentX contributors
 package io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting
 
 import androidx.compose.animation.AnimatedVisibility
@@ -177,7 +177,9 @@ fun TextFieldWidget(
         },
         onTrailingClick = if (clickableInWidget && trailingContent != null && !isClickableMode) {
             { onClickInternal() }
-        } else null,
+        } else {
+            null
+        },
         descriptionColumnContent = {
             BasicTextField(
                 state = state,
@@ -207,7 +209,7 @@ fun TextFieldWidget(
                                 }
                             } else {
                                 Modifier
-                            }
+                            },
                         ) {
                             if (state.text.isEmpty()) {
                                 Text(
@@ -221,7 +223,7 @@ fun TextFieldWidget(
                                 Text(
                                     text = error,
                                     color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodySmall,
                                 )
                             }
 
@@ -232,18 +234,18 @@ fun TextFieldWidget(
                             visible = focused,
                             enter = expandHorizontally(
                                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                expandFrom = Alignment.Start // Unroll downwards like a blind
+                                expandFrom = Alignment.Start, // Unroll downwards like a blind
                             ) + expandVertically(
                                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                expandFrom = Alignment.Top // Unroll downwards like a blind
+                                expandFrom = Alignment.Top, // Unroll downwards like a blind
                             ),
                             exit = shrinkHorizontally(
                                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                shrinkTowards = Alignment.Start // Roll up upwards
+                                shrinkTowards = Alignment.Start, // Roll up upwards
                             ) + shrinkVertically(
                                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                shrinkTowards = Alignment.Top // Unroll downwards like a blind
-                            )
+                                shrinkTowards = Alignment.Top, // Unroll downwards like a blind
+                            ),
                         ) {
                             Spacer(modifier = Modifier.height(2.dp))
 
@@ -253,7 +255,7 @@ fun TextFieldWidget(
                                     isError -> MaterialTheme.colorScheme.error
                                     !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                                     else -> MaterialTheme.colorScheme.primary
-                                }
+                                },
                             )
                         }
 
@@ -266,31 +268,31 @@ fun TextFieldWidget(
                             )
                         }
                     }
-                }
+                },
             )
 
             AnimatedVisibility(
                 visible = error.isNotBlank() && (focused || state.text.isNotBlank()),
                 enter = expandHorizontally(
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                    expandFrom = Alignment.Start // Unroll downwards like a blind
+                    expandFrom = Alignment.Start, // Unroll downwards like a blind
                 ) + expandVertically(
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                    expandFrom = Alignment.Top // Unroll downwards like a blind
+                    expandFrom = Alignment.Top, // Unroll downwards like a blind
                 ),
                 exit = shrinkHorizontally(
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                    shrinkTowards = Alignment.Start // Roll up upwards
+                    shrinkTowards = Alignment.Start, // Roll up upwards
                 ) + shrinkVertically(
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                    shrinkTowards = Alignment.Top // Unroll downwards like a blind
-                )
+                    shrinkTowards = Alignment.Top, // Unroll downwards like a blind
+                ),
             ) {
                 Text(
                     modifier = Modifier.padding(top = 2.dp),
                     text = error,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
         },
@@ -298,6 +300,8 @@ fun TextFieldWidget(
             {
                 trailingContent()
             }
-        } else null
+        } else {
+            null
+        },
     )
 }

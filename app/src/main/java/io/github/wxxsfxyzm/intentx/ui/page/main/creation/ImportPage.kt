@@ -65,7 +65,7 @@ private fun ImportContent(state: ImportViewState, onAction: (ImportViewAction) -
         item(key = "input") {
             SegmentedColumn {
                 item(key = "file") {
-                    BaseWidget(title = stringResource(R.string.import_select_file), iconPlaceholder = false, enabled = !state.busy, onClick = onSelectFile)
+                    BaseWidget(title = stringResource(R.string.import_select_file), iconPlaceholder = false, enabled = !state.busy, onClick = { onSelectFile() })
                 }
                 item(key = "text") {
                     BaseItemContainer {
