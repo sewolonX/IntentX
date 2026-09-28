@@ -10,6 +10,8 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.aboutLibraries)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -82,6 +84,10 @@ android {
     }
 }
 
+room3 {
+    schemaDirectory("$projectDir/schemas")
+}
+
 aboutLibraries {
     offlineMode = gradle.startParameter.isOffline
     library {
@@ -100,6 +106,8 @@ dependencies {
     implementation(libs.miuix.blur)
     implementation(libs.miuix.shader)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.room.runtime)
+    ksp(libs.room.compiler)
     implementation(project(":intent-executor"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.activity.compose)
@@ -127,4 +135,5 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }

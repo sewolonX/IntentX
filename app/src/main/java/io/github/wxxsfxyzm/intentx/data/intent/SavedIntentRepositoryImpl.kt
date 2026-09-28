@@ -3,40 +3,59 @@
 
 package io.github.wxxsfxyzm.intentx.data.intent
 
-import io.github.wxxsfxyzm.intentx.data.settings.local.datastore.AppDataStore
+import io.github.wxxsfxyzm.intentx.data.local.room.dao.SavedIntentDao
+import io.github.wxxsfxyzm.intentx.data.local.room.entity.SavedIntentEntity
+import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
+import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentSummary
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 class SavedIntentRepositoryImpl(
-    private val store: AppDataStore,
-    private val json: Json,
+    private val dao: SavedIntentDao,
+    private val codec: IntentPayloadCodec,
 ) : SavedIntentRepository {
-    override val profiles: Flow<List<SavedIntentProfile>> = store.getString(AppDataStore.SAVED_INTENT_PROFILES)
-        .map { decode(it).sortedByDescending(SavedIntentProfile::updatedAt) }
-        .catch {
-            Timber.e(it, "Unable to read saved Intent profiles")
-            throw it
-        }
-
-    override suspend fun upsert(profile: SavedIntentProfile) {
-        store.edit { preferences ->
-            val existing = decode(preferences[AppDataStore.SAVED_INTENT_PROFILES].orEmpty())
-            preferences[AppDataStore.SAVED_INTENT_PROFILES] =
-                json.encodeToString(existing.filterNot { it.id == profile.id } + profile)
+    override val summaries: Flow<List<SavedIntentSummary>> = dao.observeSummaries().map { records ->
+        records.map {
+            SavedIntentSummary(it.id, it.name, it.description, IntentOperation.valueOf(it.operation))
         }
     }
 
-    override suspend fun delete(id: String) {
-        store.edit { preferences ->
-            val existing = decode(preferences[AppDataStore.SAVED_INTENT_PROFILES].orEmpty())
-            preferences[AppDataStore.SAVED_INTENT_PROFILES] = json.encodeToString(existing.filterNot { it.id == id })
+    override suspend fun get(id: String): SavedIntentProfile? = withContext(Dispatchers.Default) {
+        dao.get(id)?.let {
+            SavedIntentProfile(
+                id = it.id,
+                name = it.name,
+                description = it.description,
+                intent = codec.decode(it.payloadVersion, it.payloadJson),
+                authorizer = it.authorizer,
+                createdAt = it.createdAt,
+                updatedAt = it.updatedAt,
+                operation = IntentOperation.valueOf(it.operation),
+            )
         }
     }
 
-    private fun decode(value: String): List<SavedIntentProfile> = if (value.isBlank()) emptyList() else json.decodeFromString(value)
+    override suspend fun upsert(profile: SavedIntentProfile): Unit = withContext(Dispatchers.Default) {
+        dao.upsert(
+            SavedIntentEntity(
+                id = profile.id,
+                name = profile.name,
+                description = profile.description,
+                operation = profile.operation.name,
+                authorizer = profile.authorizer,
+                createdAt = profile.createdAt,
+                updatedAt = profile.updatedAt,
+                payloadVersion = codec.version,
+                payloadJson = codec.encode(profile.intent),
+            ),
+        )
+        Timber.d("Intent profile persisted: id=%s, operation=%s", profile.id, profile.operation)
+    }
+
+    override suspend fun delete(id: String) = dao.delete(id)
 }

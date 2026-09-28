@@ -15,10 +15,14 @@ import androidx.compose.material.icons.twotone.AutoMode
 import androidx.compose.material.icons.twotone.BlurOn
 import androidx.compose.material.icons.twotone.Code
 import androidx.compose.material.icons.twotone.Copyright
+import androidx.compose.material.icons.twotone.DashboardCustomize
 import androidx.compose.material.icons.twotone.Delete
 import androidx.compose.material.icons.twotone.DoNotDisturbOn
 import androidx.compose.material.icons.twotone.Edit
+import androidx.compose.material.icons.twotone.FileDownload
+import androidx.compose.material.icons.twotone.FolderOpen
 import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.Link
 import androidx.compose.material.icons.twotone.RocketLaunch
 import androidx.compose.material.icons.twotone.Save
 import androidx.compose.material.icons.twotone.SettingsSuggest
@@ -35,6 +39,10 @@ object AppIcons {
     val OpenSourceLicense = Icons.TwoTone.Copyright
     val Update = Icons.TwoTone.SystemUpdate
     val Edit = Icons.TwoTone.Edit
+    val OpenLink = Icons.TwoTone.Link
+    val OpenFile = Icons.TwoTone.FolderOpen
+    val Templates = Icons.TwoTone.DashboardCustomize
+    val Import = Icons.TwoTone.FileDownload
     val Delete = Icons.TwoTone.Delete
     val Save = Icons.TwoTone.Save
     val AddToHomeScreen = Icons.AutoMirrored.TwoTone.AddToHomeScreen

@@ -6,7 +6,8 @@ package io.github.wxxsfxyzm.intentx.domain.intent
 import kotlinx.coroutines.flow.Flow
 
 interface SavedIntentRepository {
-    val profiles: Flow<List<SavedIntentProfile>>
+    val summaries: Flow<List<SavedIntentSummary>>
+    suspend fun get(id: String): SavedIntentProfile?
     suspend fun upsert(profile: SavedIntentProfile)
     suspend fun delete(id: String)
 }

@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import io.github.wxxsfxyzm.intentx.data.intent.IntentBuilder
 import io.github.wxxsfxyzm.intentx.domain.catalog.SystemAppProvider
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
-import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
 import io.github.wxxsfxyzm.intentx.executor.Authorizer
 import io.github.wxxsfxyzm.intentx.executor.IntentExecutor
@@ -26,14 +25,15 @@ class SavedIntentViewModel(
     private val executor: IntentExecutor,
     private val appProvider: SystemAppProvider,
 ) : ViewModel() {
-    val profiles = repository.profiles.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val profiles = repository.summaries.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     private val events = Channel<SavedIntentEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
-    fun launch(profile: SavedIntentProfile) {
+    fun launch(id: String) {
         viewModelScope.launch {
-            Timber.d("Executing saved profile: id=%s, operation=%s, authorizer=%s", profile.id, profile.operation, profile.authorizer)
             try {
+                val profile = requireNotNull(repository.get(id)) { "Profile no longer exists" }
+                Timber.d("Executing saved profile: id=%s, operation=%s, authorizer=%s", profile.id, profile.operation, profile.authorizer)
                 val spec = profile.intent
                 val disabled = if (spec.packageName != null && spec.className != null) {
                     try {
@@ -72,7 +72,7 @@ class SavedIntentViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                Timber.e(error, "Saved profile execution failed: id=%s", profile.id)
+                Timber.e(error, "Saved profile execution failed: id=%s", id)
                 events.send(SavedIntentEvent.LaunchFailed)
             }
         }

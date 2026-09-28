@@ -7,14 +7,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import io.github.wxxsfxyzm.intentx.data.intent.SavedIntentRepositoryImpl
 import io.github.wxxsfxyzm.intentx.data.settings.ThemePreferences
 import io.github.wxxsfxyzm.intentx.data.settings.local.datastore.AppDataStore
 import io.github.wxxsfxyzm.intentx.data.settings.repository.AppSettingsRepositoryImpl
-import io.github.wxxsfxyzm.intentx.data.shortcut.ShortcutRepositoryImpl
-import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
 import io.github.wxxsfxyzm.intentx.domain.settings.repository.AppSettingsRepository
-import io.github.wxxsfxyzm.intentx.domain.shortcut.ShortcutRepository
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -27,7 +23,5 @@ val settingsModule = module {
     }
     single { AppDataStore(get()) }
     single<AppSettingsRepository> { AppSettingsRepositoryImpl(get()) }
-    single<SavedIntentRepository> { SavedIntentRepositoryImpl(get(), get()) }
-    single<ShortcutRepository> { ShortcutRepositoryImpl(get(), get()) }
     single { ThemePreferences(get()) }
 }

@@ -131,7 +131,7 @@ class EditorViewModel(
         if (editingProfile?.id == id) return
         viewModelScope.launch {
             try {
-                val profile = profiles.profiles.first().firstOrNull { it.id == id }
+                val profile = profiles.get(id)
                 if (profile == null) {
                     Timber.w("Requested profile no longer exists: id=%s", id)
                     events.send(EditorViewEvent.SaveFailed)
@@ -367,7 +367,7 @@ class EditorViewModel(
                 val now = System.currentTimeMillis()
                 val existingId = _uiState.value.profileId
                 val previous = editingProfile ?: existingId?.let { id ->
-                    profiles.profiles.first().firstOrNull { it.id == id }
+                    profiles.get(id)
                 }
                 require(existingId == null || previous != null) { "Profile no longer exists" }
                 val profile = SavedIntentProfile(

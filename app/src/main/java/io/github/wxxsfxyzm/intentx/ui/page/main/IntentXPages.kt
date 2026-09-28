@@ -2,6 +2,7 @@
 // Copyright (C) 2026 IntentX contributors
 package io.github.wxxsfxyzm.intentx.ui.page.main
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,9 +30,11 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,6 +62,7 @@ import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.ComponentTabs
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorPage
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorViewAction
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorViewModel
+import io.github.wxxsfxyzm.intentx.ui.page.main.saved.IntentCreationContent
 import io.github.wxxsfxyzm.intentx.ui.page.main.saved.SavedIntentScreen
 import io.github.wxxsfxyzm.intentx.ui.page.main.settings.preferred.PreferredPage
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.ExpressiveBackButton
@@ -71,20 +76,49 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.nav.gesture.WindowNavigationEventBridge
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IntentXMainTab(page: Int, title: String, useBlur: Boolean, outerPadding: PaddingValues, active: Boolean) {
+    val navigator = LocalNavigator.current
+    val context = LocalContext.current
+    var showCreationSheet by rememberSaveable { mutableStateOf(false) }
     IntentXPageScaffold(
         title = title,
         useBlur = useBlur,
         outerPadding = outerPadding,
         topBarContent = if (page == 0) ({ CatalogSearchField(active = active) }) else null,
-        canCreate = page < 2,
+        onCreate = when (page) {
+            0 -> ({ navigator.push(Route.Editor()) })
+            1 -> ({ showCreationSheet = true })
+            else -> null
+        },
+        createContentDescription = if (page == 1) R.string.add_quick_action else R.string.new_intent,
         actions = if (page == 0) ({ CatalogActionMenu() }) else null,
     ) { modifier, contentPadding, _ ->
         when (page) {
             0 -> CatalogScreen(modifier = modifier, contentPadding = contentPadding, showSearch = false)
             1 -> SavedIntentScreen(modifier = modifier, contentPadding = contentPadding)
             2 -> PreferredPage(modifier = modifier, contentPadding = contentPadding)
+        }
+    }
+    if (showCreationSheet && active) {
+        ModalBottomSheet(
+            onDismissRequest = { showCreationSheet = false },
+            sheetState = rememberBottomSheetState(
+                initialValue = SheetValue.Hidden,
+                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+            ),
+        ) {
+            WindowNavigationEventBridge()
+            IntentCreationContent(
+                onCreateIntent = {
+                    showCreationSheet = false
+                    navigator.push(Route.Editor())
+                },
+                onUnavailableOption = {
+                    Toast.makeText(context, R.string.creation_not_connected, Toast.LENGTH_SHORT).show()
+                },
+            )
         }
     }
 }
@@ -291,7 +325,8 @@ private fun IntentXPageScaffold(
     useBlur: Boolean,
     outerPadding: PaddingValues = PaddingValues(0.dp),
     back: Boolean = false,
-    canCreate: Boolean = false,
+    onCreate: (() -> Unit)? = null,
+    createContentDescription: Int = R.string.new_intent,
     topBarContent: (@Composable () -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
     floatingActionButton: (@Composable () -> Unit)? = null,
@@ -345,11 +380,11 @@ private fun IntentXPageScaffold(
         floatingActionButton = {
             if (floatingActionButton != null) {
                 floatingActionButton()
-            } else if (canCreate) {
+            } else if (onCreate != null) {
                 FloatingActionButton(
-                    onClick = { navigator.push(Route.Editor()) },
+                    onClick = onCreate,
                     modifier = Modifier.padding(outerPadding),
-                ) { Icon(Icons.Outlined.Add, stringResource(R.string.new_intent)) }
+                ) { Icon(Icons.Outlined.Add, stringResource(createContentDescription)) }
             }
         },
     ) { padding ->

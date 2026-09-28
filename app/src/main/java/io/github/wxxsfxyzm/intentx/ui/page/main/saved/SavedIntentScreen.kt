@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.wxxsfxyzm.intentx.R
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
-import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
+import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentSummary
 import io.github.wxxsfxyzm.intentx.ui.EmptyPanel
 import io.github.wxxsfxyzm.intentx.ui.icons.AppIcons
 import io.github.wxxsfxyzm.intentx.ui.navigation.LocalNavigator
@@ -56,7 +56,7 @@ fun SavedIntentScreen(
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     val context = LocalContext.current
-    var deleting by remember { mutableStateOf<SavedIntentProfile?>(null) }
+    var deleting by remember { mutableStateOf<SavedIntentSummary?>(null) }
     CollectUiEvents(viewModel.eventFlow) { event ->
         val message = when (event) {
             SavedIntentEvent.LaunchSucceeded -> R.string.editor_launch_success
@@ -78,10 +78,10 @@ fun SavedIntentScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            items(profiles, key = SavedIntentProfile::id) { profile ->
+            items(profiles, key = SavedIntentSummary::id) { profile ->
                 SavedIntentCard(
                     profile = profile,
-                    onLaunch = { viewModel.launch(profile) },
+                    onLaunch = { viewModel.launch(profile.id) },
                     onEdit = {
                         navigator.push(Route.Editor(activityLabel = profile.name, profileId = profile.id, operation = profile.operation))
                     },
@@ -113,7 +113,7 @@ fun SavedIntentScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SavedIntentCard(
-    profile: SavedIntentProfile,
+    profile: SavedIntentSummary,
     onLaunch: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,

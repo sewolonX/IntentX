@@ -25,6 +25,7 @@ import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
 import io.github.wxxsfxyzm.intentx.domain.intent.IntentSpec
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentProfile
 import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentRepository
+import io.github.wxxsfxyzm.intentx.domain.intent.SavedIntentSummary
 import io.github.wxxsfxyzm.intentx.domain.settings.repository.AppSettingsRepository
 import io.github.wxxsfxyzm.intentx.domain.shortcut.IntentShortcut
 import io.github.wxxsfxyzm.intentx.domain.shortcut.ShortcutCreator
@@ -51,6 +52,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -249,7 +251,8 @@ class ViewModelStateTest {
     @Test
     fun savedIntentDoesNotLaunchAComponentThatIsCurrentlyDisabled() = runTest {
         val launcher = FakeActivityLauncher()
-        val model = SavedIntentViewModel(FakeSavedIntentRepository(), FakeIntentBuilder(), launcher, EmptyAppProvider(false))
+        val repository = FakeSavedIntentRepository()
+        val model = SavedIntentViewModel(repository, FakeIntentBuilder(), launcher, EmptyAppProvider(false))
         stores.put("disabledSavedIntent", model)
         val profile = SavedIntentProfile(
             "id",
@@ -260,7 +263,8 @@ class ViewModelStateTest {
             1,
             1,
         )
-        model.launch(profile)
+        repository.upsert(profile)
+        model.launch(profile.id)
         runCurrent()
         assertEquals(SavedIntentEvent.ActivityDisabled, model.eventFlow.first())
         assertEquals(0, launcher.calls)
@@ -422,7 +426,11 @@ class ViewModelStateTest {
     }
 
     private class FakeSavedIntentRepository : SavedIntentRepository {
-        override val profiles = MutableStateFlow<List<SavedIntentProfile>>(emptyList())
+        val profiles = MutableStateFlow<List<SavedIntentProfile>>(emptyList())
+        override val summaries = profiles.map { entries ->
+            entries.map { SavedIntentSummary(it.id, it.name, it.description, it.operation) }
+        }
+        override suspend fun get(id: String) = profiles.value.firstOrNull { it.id == id }
         override suspend fun upsert(profile: SavedIntentProfile) {
             profiles.value = profiles.value.filterNot { it.id == profile.id } + profile
         }

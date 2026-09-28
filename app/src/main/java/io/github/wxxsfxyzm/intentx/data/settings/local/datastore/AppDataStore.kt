@@ -51,8 +51,6 @@ class AppDataStore(private val dataStore: DataStore<Preferences>) {
         val UI_USE_APPLE_FLOATING_BAR = register(booleanPreferencesKey("ui_use_apple_floating_bar"), PreferenceValueType.BOOLEAN)
         val PREDICTIVE_BACK_ANIMATION = register(stringPreferencesKey("predictive_back_animation"), PreferenceValueType.STRING)
         val PREDICTIVE_BACK_EXIT_DIRECTION = register(stringPreferencesKey("predictive_back_exit_direction"), PreferenceValueType.STRING)
-        val SAVED_INTENT_PROFILES = register(stringPreferencesKey("saved_intent_profiles"), PreferenceValueType.STRING)
-        val INTENT_SHORTCUTS = register(stringPreferencesKey("intent_shortcuts"), PreferenceValueType.STRING)
     }
 
     suspend fun edit(transform: (MutablePreferences) -> Unit) {
