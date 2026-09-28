@@ -269,4 +269,5 @@
     <string name="editor_clip_html">HTML 文本</string>
     <string name="editor_clip_intent">嵌套 Intent URI</string>
     <string name="editor_remove_clip">删除 ClipData 条目</string>
+    <string name="click_to_input">点此输入…</string>
 </resources>

@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -23,7 +24,7 @@ fun NavigationItemWidget(
     iconPlaceholder: Boolean = true,
     title: String,
     description: String,
-    onClick: () -> Unit,
+    onClick: (Offset) -> Unit,
 ) {
     BaseWidget(
         icon = icon,

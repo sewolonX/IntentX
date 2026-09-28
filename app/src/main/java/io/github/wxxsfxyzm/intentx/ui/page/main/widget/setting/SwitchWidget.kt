@@ -13,6 +13,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -46,7 +47,7 @@ fun SwitchWidget(
     description: String? = null,
     enabled: Boolean = true,
     isError: Boolean = false,
-    onClick: (() -> Unit)? = null,
+    onClick: ((Offset) -> Unit)? = null,
     trailingDivider: Boolean = false,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
@@ -62,7 +63,7 @@ fun SwitchWidget(
         onCheckedChange(newValue)
     }
 
-    val leftClickAction = if (onClick == null) {
+    val leftClickAction: ((Offset) -> Unit)? = if (onClick == null) {
         {
             if (enabled) {
                 handleCheckedChange(!checked)
@@ -71,7 +72,7 @@ fun SwitchWidget(
     } else {
         {
             haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-            onClick()
+            onClick(it)
         }
     }
 

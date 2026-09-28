@@ -5,6 +5,7 @@ package io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MenuAnchorPosition
 import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.menu.GroupedDropdownMenuPopup
 
@@ -31,6 +33,7 @@ fun DropDownMenuWidget(
     onChoiceChange: (Int) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var clickOffset by remember { mutableStateOf(Offset.Zero) }
 
     BaseWidget(
         icon = icon,
@@ -39,7 +42,10 @@ fun DropDownMenuWidget(
         description = description,
         enabled = enabled,
         isError = isError,
-        onClick = { expanded = !expanded },
+        onClick = { offset ->
+            clickOffset = offset
+            expanded = !expanded
+        },
         foreContent = {
             Box(
                 modifier = Modifier.align(Alignment.CenterStart),
@@ -47,6 +53,7 @@ fun DropDownMenuWidget(
                 GroupedDropdownMenuPopup(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
+                    clickOffset = clickOffset,
                     groupSizes = listOf(data.size),
                     itemContent = { _, index, shape, dismissItem ->
                         val isSelected = index == choice
@@ -60,6 +67,7 @@ fun DropDownMenuWidget(
                             shapes = shape,
                         )
                     },
+                    dropdownMenuAnchorPosition = MenuAnchorPosition.End,
                 )
             }
         },

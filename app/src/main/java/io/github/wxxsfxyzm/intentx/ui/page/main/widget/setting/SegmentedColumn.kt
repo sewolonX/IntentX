@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +33,6 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
@@ -204,8 +202,6 @@ fun SegmentedColumn(
         val firstVisibleIndex = allItems.indexOfFirst { it.visible }
         val lastVisibleIndex = allItems.indexOfLast { it.visible }
 
-        val focusManager = LocalFocusManager.current
-
         Layout(
             content = {
                 allItems.forEachIndexed { index, itemData ->
@@ -258,19 +254,9 @@ fun SegmentedColumn(
                             }
                             ).coerceAtLeast(0.dp)
 
-                        var hasFocus by remember { mutableStateOf(false) }
-
-                        // Actively clear focus when the item is transitioning to a hidden state
-                        LaunchedEffect(itemData.visible) {
-                            if (!itemData.visible && hasFocus) {
-                                focusManager.clearFocus()
-                            }
-                        }
-
                         Box(
                             modifier = Modifier
                                 .zIndex(if (itemData.visible) (allItems.size - index).toFloat() else -index.toFloat())
-                                .onFocusChanged { hasFocus = it.hasFocus }
                                 .semantics {
                                     // Remove from accessibility and focus traversal completely when hidden
                                     if (!itemData.visible) hideFromAccessibility()

@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MenuAnchorPosition
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.MenuDefaults.rememberDropdownMenuPopupPositionProvider
 import androidx.compose.material3.MenuItemShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import androidx.navigationevent.NavigationEventInfo
@@ -33,6 +38,7 @@ fun GroupedDropdownMenuPopup(
     modifier: Modifier = Modifier,
     expanded: Boolean,
     onDismissRequest: () -> Unit,
+    clickOffset: Offset = Offset.Zero,
     groupSizes: List<Int>,
     keepOpenOnItemClick: Boolean = false,
     /** Vertical gap between items in the same group. */
@@ -44,6 +50,7 @@ fun GroupedDropdownMenuPopup(
         shapes: MenuItemShapes,
         dismissItem: () -> Unit,
     ) -> Unit,
+    dropdownMenuAnchorPosition: MenuAnchorPosition = MenuAnchorPosition.Below,
 ) {
     val backEventState = rememberNavigationEventState(NavigationEventInfo.None)
     NavigationBackHandler(
@@ -51,10 +58,18 @@ fun GroupedDropdownMenuPopup(
         isBackEnabled = expanded,
         onBackCompleted = onDismissRequest,
     )
+    val density = LocalDensity.current
+    val popupPositionProvider = rememberDropdownMenuPopupPositionProvider(
+        offset = with(density) {
+            DpOffset(clickOffset.x.toDp(), clickOffset.y.toDp())
+        },
+        dropdownMenuAnchorPosition = dropdownMenuAnchorPosition,
+    )
     DropdownMenuPopup(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
         modifier = modifier,
+        popupPositionProvider = popupPositionProvider,
         properties = popupProperties,
     ) {
         val nonEmptyGroups = groupSizes.mapIndexedNotNull { groupIndex, itemCount ->

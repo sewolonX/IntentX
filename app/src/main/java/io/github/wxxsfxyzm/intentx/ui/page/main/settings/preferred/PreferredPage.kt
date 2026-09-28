@@ -60,7 +60,7 @@ private fun PreferredContent(
                         icon = AppIcons.Palette,
                         title = stringResource(R.string.theme_settings),
                         description = stringResource(R.string.theme_settings_desc),
-                        onClick = onOpenTheme,
+                        onClick = { onOpenTheme() },
                     )
                 }
             }
@@ -72,7 +72,7 @@ private fun PreferredContent(
                         icon = AppIcons.Info,
                         title = stringResource(R.string.about_detail),
                         description = BuildConfig.VERSION_NAME,
-                        onClick = onOpenAbout,
+                        onClick = { onOpenAbout() },
                     )
                 }
             }

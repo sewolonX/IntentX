@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -38,7 +40,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
@@ -82,7 +83,6 @@ import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
 import io.github.wxxsfxyzm.intentx.executor.Authorizer
 import io.github.wxxsfxyzm.intentx.framework.shortcut.ShortcutIconLoader
 import io.github.wxxsfxyzm.intentx.ui.icons.AppIcons
-import io.github.wxxsfxyzm.intentx.ui.page.main.editor.ComponentSuggestion
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.DraftRowState
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorChoice
 import io.github.wxxsfxyzm.intentx.ui.page.main.editor.EditorField
@@ -96,6 +96,7 @@ import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.DropDownMenuWidge
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.SegmentedColumn
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.SwitchWidget
 import io.github.wxxsfxyzm.intentx.ui.util.clearFocusOnImeDismiss
+import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.TextFieldWidget
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -252,7 +253,7 @@ internal fun IntentEditor(
                         R.string.package_name,
                         state.fields[EditorField.PackageName].orEmpty(),
                         { onAction(EditorViewAction.SetField(EditorField.PackageName, it)) },
-                        state.packageSuggestions,
+                        suggestions = state.packageSuggestions.map { DraftSuggestion(it) },
                     )
                 }
             }
@@ -263,19 +264,32 @@ internal fun IntentEditor(
                         state.fields[EditorField.ClassName].orEmpty(),
                     )
                 } else {
+                    val packageName = state.fields[EditorField.PackageName].orEmpty().trim()
+                    val componentSuggestions = if (packageName.isBlank()) {
+                        emptyList<DraftSuggestion>()
+                    } else {
+                        state.componentSuggestions.map { suggestion ->
+                            DraftSuggestion(
+                                value = suggestion.className,
+                                title = suggestion.label.ifBlank { suggestion.className },
+                                secondaryText = suggestion.className,
+                                onSelect = {
+                                    onAction(EditorViewAction.SetField(EditorField.PackageName, suggestion.packageName))
+                                    onAction(EditorViewAction.SetField(EditorField.ClassName, suggestion.className))
+                                    if (suggestion.label.isNotBlank()) {
+                                        onAction(EditorViewAction.SetField(EditorField.Title, suggestion.label))
+                                    }
+                                },
+                            )
+                        }
+                    }
                     DraftSuggestionField(
                         if (isBroadcast) R.string.receiver_class_name else R.string.class_name,
                         state.fields[EditorField.ClassName].orEmpty(),
                         { onAction(EditorViewAction.SetField(EditorField.ClassName, it)) },
-                        state.componentSuggestions,
-                        packageName = state.fields[EditorField.PackageName].orEmpty(),
-                        onSelect = { suggestion ->
-                            onAction(EditorViewAction.SetField(EditorField.PackageName, suggestion.packageName))
-                            onAction(EditorViewAction.SetField(EditorField.ClassName, suggestion.className))
-                            if (suggestion.label.isNotBlank()) {
-                                onAction(EditorViewAction.SetField(EditorField.Title, suggestion.label))
-                            }
-                        },
+                        suggestions = componentSuggestions,
+                        emptyMessage = stringResource(R.string.editor_enter_package_for_search)
+                            .takeIf { packageName.isBlank() },
                     )
                 }
             }
@@ -289,9 +303,13 @@ internal fun IntentEditor(
                         { onAction(EditorViewAction.SetField(EditorField.Action, it)) },
                     )
                 } else {
-                    DraftActionField(
+                    DraftSuggestionField(
+                        R.string.action,
                         state.fields[EditorField.Action].orEmpty(),
-                    ) { onAction(EditorViewAction.SetField(EditorField.Action, it)) }
+                        { onAction(EditorViewAction.SetField(EditorField.Action, it)) },
+                        suggestions = IntentActionCatalog.suggestions.map { DraftSuggestion(it) },
+                        emptyMessage = stringResource(R.string.editor_no_matching_actions),
+                    )
                 }
             }
             item {
@@ -339,20 +357,19 @@ internal fun IntentEditor(
         }
         SegmentedColumn(title = stringResource(R.string.flags)) {
             item {
-                BaseItemContainer {
-                    OutlinedTextField(
-                        value = flags,
-                        onValueChange = { onAction(EditorViewAction.SetFlags(it)) },
-                        label = { Text(stringResource(R.string.flags)) },
-                        supportingText = { Text(stringResource(if (mask == null) R.string.flags_error else R.string.flags_hint)) },
-                        isError = mask == null,
-                        singleLine = true,
-                        modifier = Modifier
-                            .clearFocusOnImeDismiss()
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    )
-                }
+                TextFieldWidget(
+                    value = flags,
+                    onValueChange = { onAction(EditorViewAction.SetFlags(it)) },
+                    title = stringResource(R.string.flags),
+                    supportingText = stringResource(if (mask == null) R.string.flags_error else R.string.flags_hint),
+                    isError = mask == null,
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    textFieldModifier = Modifier
+                        .clearFocusOnImeDismiss()
+                        .fillMaxWidth(),
+                )
             }
             item {
                 val arrowRotation = animateFloatAsState(
@@ -376,17 +393,16 @@ internal fun IntentEditor(
             }
             // Keep mounted while collapsed so an unfinished filter survives toggling.
             item(animatedVisibility = showFlags) {
-                BaseItemContainer {
-                    OutlinedTextField(
-                        query,
-                        { query = it },
-                        label = { Text(stringResource(R.string.editor_filter_flags)) },
-                        modifier = Modifier
-                            .clearFocusOnImeDismiss()
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    )
-                }
+                TextFieldWidget(
+                    value = query,
+                    onValueChange = { query = it },
+                    title = stringResource(R.string.editor_filter_flags),
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    textFieldModifier = Modifier
+                        .clearFocusOnImeDismiss()
+                        .fillMaxWidth(),
+                )
             }
             availableFlags.filter { it.name.contains(query.trim(), ignoreCase = true) }.forEach { flag ->
                 item(key = flag.name, animatedVisibility = showFlags) {
@@ -948,80 +964,12 @@ private fun DraftChoice(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun DraftSuggestionField(
-    label: Int,
-    value: String,
-    onValueChange: (String) -> Unit,
-    suggestions: List<String>,
-) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val matches = remember(value, suggestions) {
-        val query = value.trim()
-        if (query.isEmpty()) {
-            emptyList()
-        } else {
-            suggestions
-                .filter { it.contains(query, ignoreCase = true) }
-                .sortedWith(
-                    compareByDescending<String> { it.startsWith(query, ignoreCase = true) }
-                        .thenBy { it.length },
-                )
-                .take(3)
-        }
-    }
-    val menuExpanded = expanded && matches.isNotEmpty()
-    BaseItemContainer {
-        ExposedDropdownMenuBox(
-            expanded = menuExpanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-        ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = {
-                    onValueChange(it)
-                    expanded = true
-                },
-                label = { Text(stringResource(label)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(menuExpanded) },
-                singleLine = true,
-                modifier = Modifier
-                    .clearFocusOnImeDismiss { expanded = false }
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
-            )
-            ExposedDropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { expanded = false },
-                containerColor = Color.Transparent,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-            ) {
-                DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, 1)) {
-                    matches.forEachIndexed { index, suggestion ->
-                        if (index > 0) Spacer(modifier = Modifier.height(2.dp))
-                        val selected = value == suggestion
-                        SelectableDropdownMenuItem(
-                            selected = selected,
-                            onClick = {
-                                onValueChange(suggestion)
-                                expanded = false
-                            },
-                            text = {
-                                if (selected) Text(suggestion) else HighlightedActionText(suggestion, value)
-                            },
-                            shapes = MenuDefaults.itemShape(0, 1),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
+private data class DraftSuggestion(
+    val value: String,
+    val title: String = value,
+    val secondaryText: String? = null,
+    val onSelect: (() -> Unit)? = null,
+)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -1029,164 +977,110 @@ private fun DraftSuggestionField(
     label: Int,
     value: String,
     onValueChange: (String) -> Unit,
-    suggestions: List<ComponentSuggestion>,
-    packageName: String,
-    onSelect: (ComponentSuggestion) -> Unit,
+    suggestions: List<DraftSuggestion>,
+    emptyMessage: String? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val matches = remember(value, suggestions) {
         val query = value.trim()
         suggestions
-            .filter {
-                query.isNotEmpty() && (
-                    it.className.contains(query, ignoreCase = true) || it.label.contains(
-                        query,
-                        ignoreCase = true,
-                    )
-                    )
+            .filter { suggestion ->
+                query.isEmpty() || listOf(
+                    suggestion.value,
+                    suggestion.title,
+                    suggestion.secondaryText,
+                ).any { it?.contains(query, ignoreCase = true) == true }
             }
             .sortedWith(
-                compareByDescending<ComponentSuggestion> {
-                    it.className.startsWith(query, ignoreCase = true) || it.label.startsWith(query, ignoreCase = true)
-                }.thenBy { it.className.length },
+                compareByDescending<DraftSuggestion> { suggestion ->
+                    val queryMatches = query.isNotEmpty()
+                    queryMatches && listOf(
+                        suggestion.value,
+                        suggestion.title,
+                        suggestion.secondaryText,
+                    ).any { it?.startsWith(query, ignoreCase = true) == true }
+                }.thenBy { it.value.length },
             )
             .take(3)
     }
-    val needsPackageName = packageName.isBlank()
-    val menuExpanded = expanded && (needsPackageName || matches.isNotEmpty())
-    BaseItemContainer {
-        ExposedDropdownMenuBox(
+    val menuExpanded = expanded && (matches.isNotEmpty() || emptyMessage != null)
+    ExposedDropdownMenuBox(
+        expanded = menuExpanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        TextFieldWidget(
+            value = value,
+            onValueChange = {
+                onValueChange(it)
+                expanded = true
+            },
+            title = stringResource(label),
+            lineLimits = TextFieldLineLimits.SingleLine,
+            trailingContent = {
+                Box(
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.SecondaryEditable),
+                ) {
+                    ExposedDropdownMenuDefaults.TrailingIcon(menuExpanded)
+                }
+            },
+            clickableInWidget = false,
+            modifier = Modifier.fillMaxWidth(),
+            textFieldModifier = Modifier
+                .clearFocusOnImeDismiss { expanded = false }
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
+        )
+        ExposedDropdownMenu(
             expanded = menuExpanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            onDismissRequest = { expanded = false },
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
         ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = {
-                    onValueChange(it)
-                    expanded = true
-                },
-                label = { Text(stringResource(label)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(menuExpanded) },
-                singleLine = true,
-                modifier = Modifier
-                    .clearFocusOnImeDismiss { expanded = false }
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
-            )
-            ExposedDropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { expanded = false },
-                containerColor = Color.Transparent,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-            ) {
-                DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, 1)) {
-                    if (needsPackageName) {
+            DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, 1)) {
+                if (matches.isEmpty()) {
+                    emptyMessage?.let { message ->
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.editor_enter_package_for_search)) },
+                            text = { Text(message) },
                             onClick = {},
                             enabled = false,
                             shape = MenuDefaults.standaloneItemShape,
                         )
-                    } else {
-                        matches.forEachIndexed { index, suggestion ->
-                            if (index > 0) Spacer(modifier = Modifier.height(2.dp))
-                            val selected = value == suggestion.className
-                            SelectableDropdownMenuItem(
-                                selected = selected,
-                                onClick = {
-                                    onSelect(suggestion)
-                                    expanded = false
-                                },
-                                text = {
+                    }
+                } else {
+                    matches.forEachIndexed { index, suggestion ->
+                        if (index > 0) Spacer(modifier = Modifier.height(2.dp))
+                        val selected = value == suggestion.value
+                        SelectableDropdownMenuItem(
+                            selected = selected,
+                            onClick = {
+                                suggestion.onSelect?.invoke() ?: onValueChange(suggestion.value)
+                                expanded = false
+                            },
+                            text = {
+                                if (suggestion.secondaryText == null) {
+                                    if (selected) {
+                                        Text(suggestion.title)
+                                    } else {
+                                        HighlightedActionText(suggestion.title, value)
+                                    }
+                                } else {
                                     val secondaryColor = LocalContentColor.current.copy(alpha = 0.7f)
                                     Column {
-                                        Text(suggestion.label.ifBlank { suggestion.className })
+                                        Text(suggestion.title)
                                         Text(
-                                            suggestion.className,
+                                            suggestion.secondaryText,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = secondaryColor,
                                         )
                                     }
-                                },
-                                shapes = MenuDefaults.itemShape(0, 1),
+                                }
+                            },
+                            shapes = MenuDefaults.itemShape(0, 1),
                             )
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun DraftActionField(value: String, onValueChange: (String) -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val matches = IntentActionCatalog.matching(value)
-    BaseItemContainer {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-        ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = {
-                    onValueChange(it)
-                    expanded = true
-                },
-                label = { Text(stringResource(R.string.action)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                singleLine = true,
-                modifier = Modifier
-                    .clearFocusOnImeDismiss { expanded = false }
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = Color.Transparent,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-            ) {
-                DropdownMenuGroup(shapes = MenuDefaults.groupShape(0, 1)) {
-                    if (matches.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.editor_no_matching_actions)) },
-                            onClick = {},
-                            enabled = false,
-                            shape = MenuDefaults.standaloneItemShape,
-                        )
-                    } else {
-                        matches.forEachIndexed { index, suggestion ->
-                            if (index > 0) Spacer(modifier = Modifier.height(2.dp))
-                            val selected = value == suggestion
-                            SelectableDropdownMenuItem(
-                                selected = selected,
-                                onClick = {
-                                    onValueChange(suggestion)
-                                    expanded = false
-                                },
-                                text = {
-                                    if (selected) {
-                                        Text(suggestion)
-                                    } else {
-                                        HighlightedActionText(suggestion, value)
-                                    }
-                                },
-                                shapes = MenuDefaults.itemShape(0, 1),
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -1232,17 +1126,22 @@ private fun DraftField(
     hint: Int? = null,
     remove: (() -> Unit)? = null,
 ) {
-    BaseItemContainer(modifier) {
-        OutlinedTextField(
-            value,
-            onValueChange,
-            label = { Text(stringResource(label)) },
-            supportingText = hint?.let { { Text(stringResource(it)) } },
-            singleLine = !multiline,
+    Column(modifier.fillMaxWidth()) {
+        TextFieldWidget(
+            value = value,
+            onValueChange = onValueChange,
+            title = stringResource(label),
+            supportingText = hint?.let { stringResource(it) }.orEmpty(),
+            lineLimits = if (multiline) {
+                TextFieldLineLimits.MultiLine()
+            } else {
+                TextFieldLineLimits.SingleLine
+            },
             modifier = Modifier
+                .fillMaxWidth(),
+            textFieldModifier = Modifier
                 .clearFocusOnImeDismiss()
-                .fillMaxWidth()
-                .padding(12.dp),
+                .fillMaxWidth(),
         )
         remove?.let {
             TextButton(onClick = it, modifier = Modifier.padding(horizontal = 12.dp)) {

@@ -68,7 +68,7 @@ fun PredictiveBackAnimationWidget(uiState: ThemeSettingsState, onClick: () -> Un
             PredictiveBackAnimation.Scale -> stringResource(R.string.theme_settings_predictive_back_animation_scale)
             PredictiveBackAnimation.Classic -> stringResource(R.string.theme_settings_predictive_back_animation_ksu_classic)
         },
-        onClick = onClick,
+        onClick = { onClick() },
     ) {}
 }
 
@@ -90,6 +90,6 @@ fun PredictiveBackAnimationDirectionWidget(uiState: ThemeSettingsState, onClick:
                 R.string.theme_settings_predictive_back_exit_direction_always_left,
             )
         },
-        onClick = onClick,
+        onClick = { onClick() },
     ) {}
 }

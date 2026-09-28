@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.AlertDialog
@@ -27,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,6 +50,7 @@ import io.github.wxxsfxyzm.intentx.ui.icons.AppIcons
 import io.github.wxxsfxyzm.intentx.ui.navigation.LocalNavigator
 import io.github.wxxsfxyzm.intentx.ui.navigation.Route
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.ActivityActionMenu
+import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.TextFieldWidget
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogActionMenu
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogScreen
 import io.github.wxxsfxyzm.intentx.ui.page.main.catalog.CatalogSearchField
@@ -194,21 +195,20 @@ fun IntentXDestination(route: Route, useBlur: Boolean) {
             text = {
                 ImeDismissalFocusScope(enabled = navigator.current() == route) {
                     Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
+                        TextFieldWidget(
                             value = name,
                             onValueChange = { name = it },
-                            label = { Text(stringResource(R.string.profile_name)) },
-                            singleLine = true,
+                            title = stringResource(R.string.profile_name),
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             isError = name.isBlank(),
-                            modifier = Modifier.clearFocusOnImeDismiss(),
+                            textFieldModifier = Modifier.clearFocusOnImeDismiss(),
                         )
-                        OutlinedTextField(
+                        TextFieldWidget(
                             value = description,
                             onValueChange = { description = it },
-                            label = { Text(stringResource(R.string.profile_description_optional)) },
-                            minLines = 2,
-                            maxLines = 4,
-                            modifier = Modifier.clearFocusOnImeDismiss(),
+                            title = stringResource(R.string.profile_description_optional),
+                            lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 2, maxHeightInLines = 4),
+                            textFieldModifier = Modifier.clearFocusOnImeDismiss(),
                         )
                     }
                 }

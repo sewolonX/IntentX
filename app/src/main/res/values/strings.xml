@@ -270,4 +270,5 @@
     <string name="editor_clip_html">HTML text</string>
     <string name="editor_clip_intent">Nested Intent URI</string>
     <string name="editor_remove_clip">Remove ClipData item</string>
+    <string name="click_to_input">Click to input…</string>
 </resources>

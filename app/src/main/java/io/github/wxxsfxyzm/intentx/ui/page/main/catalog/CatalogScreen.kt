@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.MoreVert
@@ -21,7 +22,6 @@ import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -57,6 +57,7 @@ import io.github.wxxsfxyzm.intentx.domain.intent.IntentOperation
 import io.github.wxxsfxyzm.intentx.ui.navigation.LocalNavigator
 import io.github.wxxsfxyzm.intentx.ui.navigation.Route
 import io.github.wxxsfxyzm.intentx.ui.page.main.widget.menu.GroupedDropdownMenuPopup
+import io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting.TextFieldWidget
 import io.github.wxxsfxyzm.intentx.ui.util.CollectUiEvents
 import io.github.wxxsfxyzm.intentx.ui.util.ImeDismissalFocusScope
 import io.github.wxxsfxyzm.intentx.ui.util.clearFocusOnImeDismiss
@@ -157,28 +158,24 @@ fun CatalogSearchField(packageName: String? = null, active: Boolean = true) {
         route is Route.Activities && route.packageName == packageName
     }
     ImeDismissalFocusScope(enabled = isCurrentPage) {
-        OutlinedTextField(
+        TextFieldWidget(
             value = state.query,
             onValueChange = { viewModel.dispatch(CatalogViewAction.SetQuery(it)) },
-            label = {
-                Text(
-                    stringResource(
-                        when {
-                            packageName != null && state.componentTab == IntentOperation.Broadcast -> R.string.search_receivers
-                            packageName != null -> R.string.search_activities
-                            state.searchActivities -> R.string.search_apps_and_activities
-                            else -> R.string.search_apps
-                        },
-                    ),
-                )
-            },
-            leadingIcon = { Icon(Icons.Outlined.Search, null) },
-            singleLine = true,
-            shape = MaterialTheme.shapes.extraLarge,
+            title = stringResource(
+                when {
+                    packageName != null && state.componentTab == IntentOperation.Broadcast -> R.string.search_receivers
+                    packageName != null -> R.string.search_activities
+                    state.searchActivities -> R.string.search_apps_and_activities
+                    else -> R.string.search_apps
+                },
+            ),
+            leadingContent = { Icon(Icons.Outlined.Search, null) },
+            lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier
-                .clearFocusOnImeDismiss()
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
+            textFieldModifier = Modifier.clearFocusOnImeDismiss(),
+            useLabelAsPlaceholder = true,
         )
     }
 }
@@ -195,11 +192,13 @@ fun ComponentTabs(packageName: String) {
             selected = state.componentTab == IntentOperation.Activity,
             onClick = { viewModel.dispatch(CatalogViewAction.SetComponentTab(IntentOperation.Activity)) },
             text = { Text(stringResource(R.string.operation_activity)) },
+            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Tab(
             selected = state.componentTab == IntentOperation.Broadcast,
             onClick = { viewModel.dispatch(CatalogViewAction.SetComponentTab(IntentOperation.Broadcast)) },
             text = { Text(stringResource(R.string.operation_broadcast)) },
+            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

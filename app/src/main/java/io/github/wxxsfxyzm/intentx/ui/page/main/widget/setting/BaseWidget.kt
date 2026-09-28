@@ -5,9 +5,12 @@ package io.github.wxxsfxyzm.intentx.ui.page.main.widget.setting
 
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,22 +23,29 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.disabled
@@ -69,7 +79,8 @@ val LocalSegmentedItemShape = compositionLocalOf<Shape> { RoundedCornerShape(Cor
  * This also controls clickability for [onClick] and [onTrailingClick] when those callbacks are provided.
  * @param isError If true, applies the error color to the description text.
  * @param selected If true, highlights the widget with a primary container background.
- * @param onClick Callback to be invoked when the main/left area is clicked. If null, the main area is not clickable.
+ * @param onClick Callback to be invoked when the main/left area is clicked. If null and onLongClick is null too, the main area is not clickable.
+ * @param onLongClick Callback to be invoked when the main/left area is long clicked. If null and onClick is null too, the main area is not clickable.
  * @param onTrailingClick Callback to be invoked when the trailing/right area is clicked.
  * @param clickHaptic The type of haptic feedback to perform on click. Set to null to disable.
  * @param trailingDivider If true, displays a vertical divider before [trailingContent].
@@ -83,7 +94,7 @@ fun BaseWidget(
     icon: ImageVector? = null,
     iconColor: Color? = null,
     iconPlaceholder: Boolean = true,
-    title: String,
+    title: String?,
     titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
     description: String? = null,
     descriptionStyle: TextStyle = MaterialTheme.typography.bodyMedium,
@@ -91,12 +102,15 @@ fun BaseWidget(
     enabled: Boolean = true,
     isError: Boolean = false,
     selected: Boolean = false,
-    onClick: (() -> Unit)? = null,
+    onClick: ((Offset) -> Unit)? = null,
+    onLongClick: ((Offset) -> Unit)? = null,
     onTrailingClick: (() -> Unit)? = null,
     clickHaptic: HapticFeedbackType? = HapticFeedbackType.VirtualKey,
     trailingDivider: Boolean = false,
+    leadingContent: (@Composable () -> Unit)? = null,
     foreContent: @Composable BoxScope.() -> Unit = {},
-    trailingContent: @Composable BoxScope.(interactionSource: MutableInteractionSource) -> Unit = {},
+    descriptionColumnContent: (@Composable ColumnScope.() -> Unit)? = null,
+    trailingContent: (@Composable BoxScope.(interactionSource: MutableInteractionSource) -> Unit)? = {},
 ) {
     val haptic = LocalHapticFeedback.current
     val alpha = if (enabled) 1f else 0.38f
@@ -178,7 +192,8 @@ fun BaseWidget(
 
     val shapes = ListItemDefaults.shapes(
         shape = baseShape,
-        pressedShape = RoundedCornerShape(CornerRadius),
+        // M3's pressed-shape spring can overshoot a flat segmented corner below zero.
+        pressedShape = baseShape,
         selectedShape = baseShape,
         focusedShape = baseShape,
         hoveredShape = baseShape,
@@ -189,22 +204,29 @@ fun BaseWidget(
         .heightIn(min = adaptiveMinHeight)
 
     val leadingContent: (@Composable () -> Unit)? =
-        if (icon != null || iconPlaceholder) {
+        if (icon != null || iconPlaceholder || leadingContent != null) {
             {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .alpha(alpha),
-                    contentAlignment = Alignment.Center,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (icon != null) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = resolvedIconColor,
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.size(24.dp))
+                    leadingContent?.invoke()
+                    if (icon != null || iconPlaceholder) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .alpha(alpha),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (icon != null) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = resolvedIconColor,
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.size(24.dp))
+                            }
+                        }
                     }
                 }
             }
@@ -212,83 +234,131 @@ fun BaseWidget(
             null
         }
 
-    val supportingContent: (@Composable () -> Unit)? =
-        description?.let { text ->
-            {
+    val supportingContent: (@Composable () -> Unit) = {
+        Column {
+            description?.let { text ->
                 Text(
                     text = text,
                     style = descriptionStyle,
-                    modifier = Modifier.alpha(alpha),
+                    modifier = Modifier
+                        .alpha(alpha)
                 )
             }
-        }
 
-    val trailing: @Composable () -> Unit = {
-        Row(
-            modifier = Modifier.alpha(alpha),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (trailingDivider) VerticalDivider(modifier = Modifier.height(32.dp))
-
-            Box(
-                modifier = Modifier
-                    .then(
-                        if (handleTrailingClick != null) {
-                            Modifier.clickable(
-                                enabled = enabled,
-                                interactionSource = trailingInteractionSource,
-                                indication = LocalIndication.current,
-                                onClick = handleTrailingClick,
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .padding(start = if (trailingDivider) 16.dp else 0.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                trailingContent(trailingContentInteractionSource)
-            }
+            descriptionColumnContent?.invoke(this)
         }
     }
 
+    val trailing: (@Composable () -> Unit)? = if (trailingContent != null) {
+        {
+            Row(
+                modifier = Modifier.alpha(alpha),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (trailingDivider) VerticalDivider(modifier = Modifier.height(32.dp))
+
+                Box(
+                    modifier = Modifier
+                        .then(
+                            if (handleTrailingClick != null) {
+                                Modifier.clickable(
+                                    enabled = enabled,
+                                    interactionSource = trailingInteractionSource,
+                                    indication = LocalIndication.current,
+                                    onClick = handleTrailingClick,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .padding(start = if (trailingDivider) 16.dp else 0.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    trailingContent(trailingContentInteractionSource)
+                }
+            }
+        }
+    } else null
+
     val headline: @Composable () -> Unit = {
         Box(
-            modifier = Modifier.alpha(alpha),
+            modifier = Modifier
+                .alpha(alpha),
         ) {
-            Text(
-                text = title,
-                style = titleStyle,
-            )
+            title?.let {
+                Text(
+                    text = title,
+                    style = titleStyle,
+                )
+            }
 
             foreContent()
         }
     }
 
-    if (onClick != null) {
+    // M3E ListItem has bug, supportingContent will cause RectList broken
+    // and cause application crash.
+
+    // We use headlineContent + Column + supportingContent for workaround,
+    // Hope Google fix this problem in their new version....
+    val expressiveContent: @Composable () -> Unit = {
+        Column {
+            headline()
+            CompositionLocalProvider(
+                LocalContentColor provides colors.supportingContentColor(
+                    enabled = enabled,
+                    selected = selected,
+                    dragged = false,
+                ),
+            ) {
+                supportingContent()
+            }
+        }
+    }
+
+    if (onClick != null || onLongClick != null) {
+        var touchPoint by remember { mutableStateOf<Offset?>(null) }
+
         ListItem(
             selected = selected,
-            modifier = itemModifier,
+            modifier = itemModifier
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitFirstDown(requireUnconsumed = false)
+                            touchPoint = event.position
+                        }
+                    }
+                },
             onClick = {
+                val point = touchPoint ?: Offset.Zero
+                touchPoint = null
                 clickHaptic?.let { haptic.performHapticFeedback(it) }
-                onClick()
+                onClick?.invoke(point)
             },
+            onLongClick = if (onLongClick != null) {
+                {
+                    val point = touchPoint ?: Offset.Zero
+                    touchPoint = null
+                    clickHaptic?.let { haptic.performHapticFeedback(it) }
+                    onLongClick(point)
+                }
+            } else null,
             enabled = enabled,
             colors = colors,
             shapes = shapes,
             verticalAlignment = Alignment.CenterVertically,
             leadingContent = leadingContent,
-            supportingContent = supportingContent,
             trailingContent = trailing,
             interactionSource = interactionSource,
-            content = headline,
+            content = expressiveContent
         )
     } else {
         /*
          * Non-clickable item:
          *
          * Do not use the clickable ListItem overload here.
-         * Otherwise a null onClick would have to be represented as enabled = false,
+         * Otherwise, a null onClick would have to be represented as enabled = false,
          * which incorrectly exposes the item as disabled and changes its visual state.
          */
         ListItem(
@@ -299,13 +369,16 @@ fun BaseWidget(
                         Modifier.semantics { disabled() }
                     } else {
                         Modifier
-                    },
+                    }
                 ),
+            enabled = enabled,
+            verticalAlignment = Alignment.CenterVertically,
+            shapes = shapes,
             colors = colors,
             leadingContent = leadingContent,
-            supportingContent = supportingContent,
             trailingContent = trailing,
-            content = headline,
+            contentPadding = ListItemDefaults.ContentPadding,
+            content = expressiveContent,
         )
     }
 }
